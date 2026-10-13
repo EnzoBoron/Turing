@@ -1,0 +1,121 @@
+<!doctype html>
+<html lang="fr">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Turing — du NAND à l'assembleur</title>
+  <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+  <header class="topbar">
+    <button class="brand" id="home-btn" title="Menu principal">
+      <span class="logo">⊼</span> TURING
+    </button>
+    <span class="subtitle" id="topbar-title">du NAND à l'assembleur</span>
+    <span class="spacer"></span>
+    <span class="progress" id="progress"></span>
+  </header>
+
+  <!-- Menu des niveaux -->
+  <main id="screen-menu" class="screen">
+    <section class="intro">
+      <h1>Construis un ordinateur à partir d'une seule porte logique.</h1>
+      <p>Chaque niveau résolu débloque un nouveau composant que tu pourras réutiliser ensuite.
+        Des portes logiques jusqu'à la programmation en assembleur sur ton propre processeur.</p>
+    </section>
+    <div id="chapters" class="chapters"></div>
+    <footer class="menu-footer">
+      <label><input type="checkbox" id="free-mode"> Mode libre (tous les niveaux débloqués)</label>
+      <button class="link danger" id="reset-progress">Effacer la progression</button>
+    </footer>
+  </main>
+
+  <!-- Niveau de circuit -->
+  <main id="screen-circuit" class="screen hidden">
+    <aside class="panel side">
+      <div class="level-head">
+        <div class="chapter-tag" id="c-chapter"></div>
+        <h2 id="c-title"></h2>
+      </div>
+      <div class="desc" id="c-desc"></div>
+      <h3>Composants</h3>
+      <div class="palette" id="c-palette"></div>
+      <div class="stats" id="c-stats"></div>
+    </aside>
+    <section class="workspace">
+      <div class="toolbar">
+        <button class="primary" id="c-verify">✔ Vérifier</button>
+        <span class="seq-only">
+          <button id="c-tick" title="Faire avancer l'horloge d'un tick">⏵ Tick</button>
+          <button id="c-reset-state" title="Remettre les mémoires à 0">↺ État</button>
+          <span class="tick-count" id="c-tickcount"></span>
+        </span>
+        <span class="spacer"></span>
+        <button id="c-fit" title="Recentrer la vue">⤢</button>
+        <button id="c-delete" title="Supprimer la sélection">🗑</button>
+        <button class="danger" id="c-clear">Tout effacer</button>
+      </div>
+      <div class="canvas-wrap"><canvas id="c-canvas"></canvas>
+        <div class="sim-error hidden" id="c-error"></div>
+      </div>
+      <div class="results hidden" id="c-results"></div>
+    </section>
+  </main>
+
+  <!-- Niveau d'assemblage -->
+  <main id="screen-asm" class="screen hidden">
+    <aside class="panel side">
+      <div class="level-head">
+        <div class="chapter-tag">Assemblage</div>
+        <h2 id="a-title"></h2>
+      </div>
+      <div class="desc" id="a-desc"></div>
+      <details class="isa" id="a-isa" open></details>
+    </aside>
+    <section class="workspace">
+      <div class="toolbar">
+        <button class="primary" id="a-verify">✔ Vérifier</button>
+        <button id="a-step" title="Exécuter une instruction">⏭ Pas</button>
+        <button id="a-run">⏵ Exécuter</button>
+        <button id="a-reset">↺ Réinitialiser</button>
+        <label class="speed">Vitesse <input type="range" id="a-speed" min="1" max="60" value="8"></label>
+        <span class="spacer"></span>
+        <label>Test <select id="a-test"></select></label>
+      </div>
+      <div class="asm-body">
+        <div class="code-wrap">
+          <div class="gutter" id="a-gutter"></div>
+          <textarea id="a-code" spellcheck="false" autocapitalize="off" autocomplete="off" wrap="off"></textarea>
+        </div>
+        <div class="cpu panel" id="a-cpu"></div>
+      </div>
+      <div class="results hidden" id="a-results"></div>
+    </section>
+  </main>
+
+  <!-- Leçon -->
+  <main id="screen-lesson" class="screen hidden">
+    <article class="lesson" id="lesson"></article>
+  </main>
+
+  <!-- Victoire -->
+  <div class="modal hidden" id="modal">
+    <div class="modal-box">
+      <div class="modal-icon">★</div>
+      <h2 id="m-title">Niveau réussi !</h2>
+      <p id="m-text"></p>
+      <div class="modal-actions">
+        <button id="m-menu">Menu</button>
+        <button id="m-stay">Rester ici</button>
+        <button class="primary" id="m-next">Niveau suivant →</button>
+      </div>
+    </div>
+  </div>
+
+  <script src="js/components.js"></script>
+  <script src="js/cpu.js"></script>
+  <script src="js/levels.js"></script>
+  <script src="js/editor.js"></script>
+  <script src="js/app.js"></script>
+</body>
+</html>
