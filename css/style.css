@@ -128,7 +128,11 @@ button.link { background: none; border: none; padding: 0; text-decoration: under
 .level-card.done { border-color: var(--good); }
 .level-card.done .lv-icon { color: var(--good); }
 .level-card.locked { opacity: .5; cursor: not-allowed; }
-.menu-footer { display: flex; justify-content: space-between; flex-wrap: wrap; gap: 12px; margin-top: 20px; color: var(--muted); font-size: 14px; }
+.menu-footer { display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 12px; margin-top: 20px; color: var(--muted); font-size: 14px; }
+.save-actions { display: flex; align-items: center; flex-wrap: wrap; gap: 8px; }
+.save-msg { flex-basis: 100%; margin: 0; font-weight: 600; }
+.save-msg.good { color: var(--good); }
+.save-msg.bad { color: var(--bad); }
 
 /* ------------------------------------------------------------ Niveaux */
 #screen-circuit, #screen-asm { display: grid; grid-template-columns: 320px 1fr; }

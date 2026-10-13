@@ -5,14 +5,27 @@ puis des composants avec mémoire, un processeur complet, et enfin programme-le 
 
 ## Jouer
 
-Ouvre simplement `index.html` dans un navigateur : aucune installation, aucune dépendance.
-La progression, les circuits et les programmes sont sauvegardés dans le navigateur (`localStorage`).
+Lance un petit serveur local depuis le dossier du jeu, puis ouvre http://localhost:8000 :
+
+```sh
+python3 -m http.server 8000
+```
+
+(Ouvrir `index.html` directement fonctionne aussi, sauf avec les navigateurs installés en Flatpak ou Snap,
+qui ne peuvent pas lire les dossiers `css/` et `js/`.)
+
+## Sauvegarde
+
+La progression, les circuits et les programmes sont enregistrés automatiquement dans le navigateur.
+Depuis le menu, **Exporter la sauvegarde** télécharge un fichier `turing-sauvegarde-AAAA-MM-JJ.json`,
+et **Importer une sauvegarde** le recharge : pratique pour changer d'ordinateur ou de navigateur,
+ou pour garder une copie de sécurité.
 
 ## Ce que tu apprends
 
 | Chapitre | Contenu |
 | --- | --- |
-| **1. Portes logiques** | NAND, NOT, AND, OR, NOR, XOR, XNOR, Majorité. Chaque porte construite est débloquée comme composant. |
+| **1. Portes logiques** | NAND, NOT, AND, OR, NOR, XOR, XNOR (chaque porte construite est débloquée comme composant), puis 17 énigmes qui les combinent : constantes, AND/OR à 3 entrées, implication, alarme, parité, unanimité, comparateurs, nombres premiers, multiples de 3, majorité… |
 | **2. Composants** | Demi-additionneur, additionneur complet, multiplexeur, décodeur, puis la mémoire : le composant DÉLAI, l'oscillateur, le bit de mémoire et le compteur. |
 | **3. Architecture** | ALU 1 bit, unité de condition, décodeur 3 bits, registre, compteur de programme, puis l'assemblage du processeur **NANDO-8**, un ordinateur Turing-complet. |
 | **4. Assemblage** | Programmation du NANDO-8 : d'abord en code machine brut, puis avec des mnémoniques, des étiquettes et des constantes. Énigmes : écho, addition, parité, compte à rebours, maximum, multiplication, somme… |
@@ -20,7 +33,8 @@ La progression, les circuits et les programmes sont sauvegardés dans le navigat
 ## Commandes de l'éditeur de circuits
 
 - Clique sur un composant de la palette pour l'ajouter.
-- Glisse depuis une pastille (entrée ou sortie) vers une autre pour tirer un fil.
+- Glisse depuis une pastille (entrée ou sortie) vers une autre pour tirer un fil. Une même sortie
+  peut alimenter plusieurs entrées : tire plusieurs fils depuis la même pastille.
 - Clique sur une entrée (A, B…) pour basculer sa valeur : les fils allumés sont orange.
 - <kbd>Suppr</kbd> ou clic droit supprime la sélection. Molette : zoom ; glisser le fond : déplacer la vue.
 - **Tick** fait avancer l'horloge dans les niveaux avec mémoire.
@@ -50,6 +64,7 @@ js/levels.js        chapitres et niveaux
 js/editor.js        éditeur de circuits (canvas)
 js/app.js           menu, progression, écrans
 tests/run.js        vérifie que chaque niveau est résoluble
+tests/ui.js         tests de l'interface (Playwright)
 ```
 
 ## Tests
@@ -60,6 +75,14 @@ node tests/run.js
 
 Le script résout chaque niveau avec une solution de référence (qui n'utilise que les composants
 débloqués à ce stade) et teste l'assembleur et l'émulateur.
+
+Tests de l'interface dans un vrai navigateur (câblage à la souris, suppression, fichier de sauvegarde) :
+
+```sh
+npm install
+npx playwright install chromium
+npm run test:ui
+```
 
 ## Ajouter un niveau
 

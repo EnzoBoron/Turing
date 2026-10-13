@@ -73,17 +73,32 @@
       };
     }
 
-    pinAt(p) {
-      const tol = PIN_R + 4 / this.view.scale;
+    // Pastille la plus proche du point, dans un rayon exprimé en pixels écran.
+    // `kind` restreint la recherche aux entrées ('in') ou aux sorties ('out').
+    pinAt(p, screenRadius = 12, kind = null) {
+      const tol = Math.max(PIN_R + 2, screenRadius / this.view.scale);
+      let best = null;
+      let bestDist = tol;
       for (const c of this.circuit.components) {
         const g = this.geom(c);
-        for (const [kind, list] of [['in', g.ins], ['out', g.outs]]) {
+        for (const [k, list] of [['in', g.ins], ['out', g.outs]]) {
+          if (kind && k !== kind) continue;
           for (let i = 0; i < list.length; i++) {
-            if (Math.hypot(list[i].x - p.x, list[i].y - p.y) <= tol) return { c: c.id, p: i, kind };
+            const dist = Math.hypot(list[i].x - p.x, list[i].y - p.y);
+            if (dist <= bestDist) {
+              bestDist = dist;
+              best = { c: c.id, p: i, kind: k };
+            }
           }
         }
       }
-      return null;
+      return best;
+    }
+
+    // Cible d'un fil en cours de tracé : pastille de type opposé, avec une
+    // zone d'accroche généreuse pour faciliter le câblage.
+    dropTarget(from, p) {
+      return this.pinAt(p, 22, from.kind === 'out' ? 'in' : 'out');
     }
 
     compAt(p) {
@@ -170,7 +185,7 @@
       const p = this.toWorld(e);
       const pin = this.pinAt(p);
       if (pin) {
-        this.drag = { kind: 'wire', pin, pos: p };
+        this.drag = { kind: 'wire', pin, pos: p, start: p };
       } else {
         const c = this.compAt(p);
         if (c) {
@@ -202,7 +217,7 @@
       }
       if (d.kind === 'wire') {
         d.pos = p;
-        this.hoverPin = this.pinAt(p);
+        this.hoverPin = this.dropTarget(d.pin, p);
       } else if (d.kind === 'move') {
         if (Math.hypot(p.x - d.start.x, p.y - d.start.y) > 3) d.moved = true;
         if (d.moved) {
@@ -221,12 +236,20 @@
       this.drag = null;
       if (!d) return;
       if (d.kind === 'wire') {
-        const target = this.pinAt(this.toWorld(e));
-        if (target && target.kind !== d.pin.kind) {
+        const p = this.toWorld(e);
+        const target = this.dropTarget(d.pin, p);
+        this.hoverPin = null;
+        const comp = this.circuit.components.find((o) => o.id === d.pin.c);
+        const moved = Math.hypot(p.x - d.start.x, p.y - d.start.y) * this.view.scale >= 4;
+        if (!moved && comp.type === 'IN') {
+          // Simple clic près de la pastille d'une entrée : on bascule sa valeur.
+          this.inputVals[comp.idx] ^= 1;
+          this.simulate();
+        } else if (target) {
           const out = d.pin.kind === 'out' ? d.pin : target;
           const inp = d.pin.kind === 'in' ? d.pin : target;
           this.connect(out, inp);
-        } else if (!target && d.pin.kind === 'in') {
+        } else if (moved && d.pin.kind === 'in') {
           // Tirer depuis une entrée déjà câblée puis relâcher dans le vide : débranche.
           const before = this.circuit.wires.length;
           this.circuit.wires = this.circuit.wires.filter((w) => !(w.to.c === d.pin.c && w.to.p === d.pin.p));
@@ -291,16 +314,35 @@
       const cx = (r.width / 2 - this.view.x) / this.view.scale;
       const cy = (r.height / 2 - this.view.y) / this.view.scale;
       const c = { id: 'c' + this.nextId++, type, x: 0, y: 0 };
-      // Décale le nouveau composant tant qu'il chevauche un autre.
-      let k = 0;
-      do {
-        c.x = snap(cx - 35 + (k % 5) * 20);
-        c.y = snap(cy - 20 + k * 20);
-        k++;
-      } while (k < 30 && this.circuit.components.some((o) => Math.abs(o.x - c.x) < 40 && Math.abs(o.y - c.y) < 30));
+      const margin = 30;
+      const overlaps = () => {
+        const g = this.geom(c);
+        return this.circuit.components.some((o) => {
+          const go = this.geom(o);
+          return c.x < o.x + go.w + margin && o.x < c.x + g.w + margin
+            && c.y < o.y + go.h + margin && o.y < c.y + g.h + margin;
+        });
+      };
+      // Cherche la place libre la plus proche du centre de la vue, en spirale.
+      const g0 = this.geom(c);
+      const x0 = snap(cx - g0.w / 2);
+      const y0 = snap(cy - g0.h / 2);
+      let placed = false;
+      for (let ring = 0; ring < 40 && !placed; ring++) {
+        for (let dx = -ring; dx <= ring && !placed; dx++) {
+          for (let dy = -ring; dy <= ring && !placed; dy++) {
+            if (Math.max(Math.abs(dx), Math.abs(dy)) !== ring) continue;
+            c.x = x0 + dx * GRID * 2;
+            c.y = y0 + dy * GRID * 2;
+            placed = !overlaps();
+          }
+        }
+      }
+      if (!placed) { c.x = x0; c.y = y0; }
       this.circuit.components.push(c);
       this.selection = { kind: 'comp', id: c.id };
       this.changed();
+      return c;
     }
 
     deleteSelection() {

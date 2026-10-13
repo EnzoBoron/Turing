@@ -26,7 +26,13 @@
     <div id="chapters" class="chapters"></div>
     <footer class="menu-footer">
       <label><input type="checkbox" id="free-mode"> Mode libre (tous les niveaux débloqués)</label>
-      <button class="link danger" id="reset-progress">Effacer la progression</button>
+      <div class="save-actions">
+        <button id="export-save" title="Télécharger un fichier contenant ta progression, tes circuits et tes programmes">⬇ Exporter la sauvegarde</button>
+        <button id="import-save" title="Charger un fichier de sauvegarde">⬆ Importer une sauvegarde</button>
+        <input type="file" id="import-file" accept=".json,application/json" hidden>
+        <button class="link danger" id="reset-progress">Effacer la progression</button>
+      </div>
+      <p class="save-msg hidden" id="save-msg"></p>
     </footer>
   </main>
 

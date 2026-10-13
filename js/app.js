@@ -512,6 +512,56 @@
 
   $('home-btn').onclick = goMenu;
   $('free-mode').addEventListener('change', (e) => { save.free = e.target.checked; persist(); renderMenu(); });
+  // Fichier de sauvegarde : export / import JSON.
+  const SAVE_FORMAT = 'turing-sauvegarde';
+
+  function saveMessage(text, ok) {
+    const el = $('save-msg');
+    el.textContent = text;
+    el.className = 'save-msg ' + (ok ? 'good' : 'bad');
+  }
+
+  function exportSave() {
+    flush();
+    const data = Object.assign({ format: SAVE_FORMAT, version: 1, date: new Date().toISOString() }, save);
+    const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
+    const a = document.createElement('a');
+    a.href = URL.createObjectURL(blob);
+    a.download = 'turing-sauvegarde-' + new Date().toISOString().slice(0, 10) + '.json';
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+    setTimeout(() => URL.revokeObjectURL(a.href), 1000);
+    saveMessage('Sauvegarde exportée (' + LEVELS.filter(isDone).length + ' niveaux réussis).', true);
+  }
+
+  function parseSave(text) {
+    let data;
+    try { data = JSON.parse(text); } catch (e) { throw new Error('ce fichier n\'est pas un JSON valide'); }
+    if (!data || data.format !== SAVE_FORMAT) throw new Error('ce fichier n\'est pas une sauvegarde de TURING');
+    const obj = (v) => (v && typeof v === 'object' && !Array.isArray(v) ? v : {});
+    return { done: obj(data.done), circuits: obj(data.circuits), programs: obj(data.programs), free: !!data.free };
+  }
+
+  $('export-save').onclick = exportSave;
+  $('import-save').onclick = () => $('import-file').click();
+  $('import-file').addEventListener('change', async (e) => {
+    const file = e.target.files[0];
+    e.target.value = '';
+    if (!file) return;
+    try {
+      const loaded = parseSave(await file.text());
+      const n = LEVELS.filter((l) => loaded.done[l.id]).length;
+      if (!confirm(`Charger cette sauvegarde (${n} niveaux réussis) ? Ta progression actuelle sera remplacée.`)) return;
+      save = loaded;
+      flush();
+      renderMenu();
+      saveMessage('Sauvegarde importée : ' + n + ' niveaux réussis.', true);
+    } catch (err) {
+      saveMessage('Impossible d\'importer : ' + err.message + '.', false);
+    }
+  });
+
   $('reset-progress').onclick = () => {
     if (!confirm('Effacer toute la progression, les circuits et les programmes ?')) return;
     save = { done: {}, circuits: {}, programs: {}, free: false };

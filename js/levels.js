@@ -66,6 +66,8 @@
 
   // ===================================================== Chapitre 1 : portes
 
+  const num = (bits) => bits.reduce((acc, v, k) => acc + (v << k), 0);
+
   add({
     id: 'nand', chapter: 'gates', title: 'La porte NAND',
     inputs: ['A', 'B'], outputs: ['Q'],
@@ -81,8 +83,18 @@
     id: 'not', chapter: 'gates', title: 'NOT', unlock: 'NOT',
     inputs: ['A'], outputs: ['Q'],
     desc: `<p>La porte <b>NOT</b> inverse son entrée : 0 devient 1 et 1 devient 0.</p>
-      <p>Indice : que fait une porte NAND quand ses deux entrées sont identiques ?</p>`,
+      <p>Indice : que fait une porte NAND quand ses deux entrées sont identiques ?</p>
+      <p><b>Astuce :</b> une même sortie peut alimenter <i>plusieurs</i> entrées. Tire simplement
+      un deuxième fil depuis la même pastille.</p>`,
     tests: truthTable(1, ([a]) => [1 - a]),
+  });
+  add({
+    id: 'constants', chapter: 'gates', title: 'Constantes',
+    inputs: ['A'], outputs: ['Un', 'Zéro'],
+    desc: `<p>Quelle que soit la valeur de A, la sortie <b>Un</b> doit toujours valoir 1
+      et la sortie <b>Zéro</b> toujours 0.</p>
+      <p>Indice : « A » et « NOT A » ne peuvent jamais valoir 1 en même temps.</p>`,
+    tests: truthTable(1, () => [1, 0]),
   });
   add({
     id: 'and', chapter: 'gates', title: 'AND', unlock: 'AND',
@@ -92,6 +104,19 @@
     tests: truthTable(2, ([a, c]) => [a & c]),
   });
   add({
+    id: 'and3', chapter: 'gates', title: 'AND à 3 entrées',
+    inputs: ['A', 'B', 'C'], outputs: ['Q'],
+    desc: `<p>Q vaut 1 seulement si <b>les trois</b> entrées valent 1.</p>
+      <p>Les portes se chaînent : le résultat d'une porte peut devenir l'entrée de la suivante.</p>`,
+    tests: truthTable(3, ([a, c, d]) => [a & c & d]),
+  });
+  add({
+    id: 'a_not_b', chapter: 'gates', title: 'A sans B',
+    inputs: ['A', 'B'], outputs: ['Q'],
+    desc: `<p>Q vaut 1 quand A vaut 1 <b>et</b> que B vaut 0. B agit comme un « veto ».</p>`,
+    tests: truthTable(2, ([a, c]) => [a & (1 - c)]),
+  });
+  add({
     id: 'or', chapter: 'gates', title: 'OR', unlock: 'OR',
     inputs: ['A', 'B'], outputs: ['Q'],
     desc: `<p>La porte <b>OR</b> (« OU ») vaut 1 si A <i>ou</i> B (ou les deux) valent 1.</p>
@@ -99,10 +124,36 @@
     tests: truthTable(2, ([a, c]) => [a | c]),
   });
   add({
+    id: 'or3', chapter: 'gates', title: 'OR à 3 entrées',
+    inputs: ['A', 'B', 'C'], outputs: ['Q'],
+    desc: `<p>Q vaut 1 si <b>au moins une</b> des trois entrées vaut 1.</p>`,
+    tests: truthTable(3, ([a, c, d]) => [a | c | d]),
+  });
+  add({
+    id: 'implies', chapter: 'gates', title: 'Implication',
+    inputs: ['A', 'B'], outputs: ['Q'],
+    desc: `<p>La règle « <b>si A alors B</b> » n'est enfreinte que dans un cas : A est vrai mais B est faux.
+      Q doit valoir 0 dans ce cas, et 1 dans tous les autres.</p>`,
+    tests: truthTable(2, ([a, c]) => [(1 - a) | c]),
+  });
+  add({
+    id: 'alarm', chapter: 'gates', title: 'Alarme',
+    inputs: ['Armée', 'Porte', 'Code'], outputs: ['Sirène'],
+    desc: `<p>La sirène doit sonner si l'alarme est <b>armée</b>, que la <b>porte</b> est ouverte,
+      et que le bon <b>code</b> n'a <i>pas</i> été saisi.</p>`,
+    tests: truthTable(3, ([arm, door, code]) => [arm & door & (1 - code)]),
+  });
+  add({
     id: 'nor', chapter: 'gates', title: 'NOR', unlock: 'NOR',
     inputs: ['A', 'B'], outputs: ['Q'],
     desc: `<p>La porte <b>NOR</b> vaut 1 seulement si aucune entrée ne vaut 1. C'est l'inverse de OR.</p>`,
     tests: truthTable(2, ([a, c]) => [1 - (a | c)]),
+  });
+  add({
+    id: 'none3', chapter: 'gates', title: 'Silence total',
+    inputs: ['A', 'B', 'C'], outputs: ['Q'],
+    desc: `<p>Q vaut 1 seulement si <b>aucune</b> des trois entrées ne vaut 1.</p>`,
+    tests: truthTable(3, ([a, c, d]) => [1 - (a | c | d)]),
   });
   add({
     id: 'xor', chapter: 'gates', title: 'XOR', unlock: 'XOR',
@@ -112,10 +163,70 @@
     tests: truthTable(2, ([a, c]) => [a ^ c]),
   });
   add({
+    id: 'parity3', chapter: 'gates', title: 'Parité',
+    inputs: ['A', 'B', 'C'], outputs: ['Impair'],
+    desc: `<p><b>Impair</b> vaut 1 si le nombre d'entrées à 1 est impair (1 ou 3).</p>
+      <p>Ce circuit sert à détecter des erreurs de transmission : un bit inversé change la parité.</p>`,
+    tests: truthTable(3, ([a, c, d]) => [a ^ c ^ d]),
+  });
+  add({
+    id: 'exactly_one', chapter: 'gates', title: 'Exactement un',
+    inputs: ['A', 'B', 'C'], outputs: ['Q'],
+    desc: `<p>Q vaut 1 si <b>exactement une</b> entrée vaut 1 : ni zéro, ni deux, ni trois.</p>`,
+    tests: truthTable(3, ([a, c, d]) => [a + c + d === 1 ? 1 : 0]),
+  });
+  add({
     id: 'xnor', chapter: 'gates', title: 'XNOR', unlock: 'XNOR',
     inputs: ['A', 'B'], outputs: ['Q'],
     desc: `<p>La porte <b>XNOR</b> vaut 1 si les entrées sont <i>identiques</i>.</p>`,
     tests: truthTable(2, ([a, c]) => [1 - (a ^ c)]),
+  });
+  add({
+    id: 'all_equal', chapter: 'gates', title: 'Unanimité',
+    inputs: ['A', 'B', 'C'], outputs: ['Q'],
+    desc: `<p>Q vaut 1 si les trois entrées ont <b>la même valeur</b> (toutes à 0 ou toutes à 1).</p>`,
+    tests: truthTable(3, ([a, c, d]) => [a === c && c === d ? 1 : 0]),
+  });
+  add({
+    id: 'eq2', chapter: 'gates', title: 'Égalité 2 bits',
+    inputs: ['A0', 'A1', 'B0', 'B1'], outputs: ['Égal'],
+    desc: `<p>Deux nombres de 2 bits : A = A0 + 2·A1 et B = B0 + 2·B1 (de 0 à 3).
+      <b>Égal</b> vaut 1 si A = B.</p>
+      <p>Deux nombres sont égaux quand chacun de leurs bits est égal.</p>`,
+    tests: truthTable(4, ([a0, a1, b0, b1]) => [a0 === b0 && a1 === b1 ? 1 : 0]),
+  });
+  add({
+    id: 'cmp1', chapter: 'gates', title: 'Comparateur 1 bit',
+    inputs: ['A', 'B'], outputs: ['Sup', 'Égal', 'Inf'],
+    desc: `<p>Compare A et B : <b>Sup</b> vaut 1 si A &gt; B, <b>Égal</b> si A = B, <b>Inf</b> si A &lt; B.
+      Une seule sortie est allumée à la fois.</p>`,
+    tests: truthTable(2, ([a, c]) => [a > c ? 1 : 0, a === c ? 1 : 0, a < c ? 1 : 0]),
+  });
+  add({
+    id: 'gt2', chapter: 'gates', title: 'Plus grand 2 bits',
+    inputs: ['A0', 'A1', 'B0', 'B1'], outputs: ['Sup'],
+    desc: `<p>A = A0 + 2·A1 et B = B0 + 2·B1. <b>Sup</b> vaut 1 si A &gt; B.</p>
+      <p>Indice : compare d'abord les bits de poids fort. S'ils sont égaux, ce sont les bits de poids faible qui décident.</p>`,
+    tests: truthTable(4, ([a0, a1, b0, b1]) => [a0 + 2 * a1 > b0 + 2 * b1 ? 1 : 0]),
+  });
+  add({
+    id: 'ge5', chapter: 'gates', title: 'Au moins 5',
+    inputs: ['N0', 'N1', 'N2'], outputs: ['Q'],
+    desc: `<p>Les entrées forment un nombre N = N0 + 2·N1 + 4·N2 (de 0 à 7). Q vaut 1 si <b>N ≥ 5</b>.</p>`,
+    tests: truthTable(3, (bits) => [num(bits) >= 5 ? 1 : 0]),
+  });
+  add({
+    id: 'prime', chapter: 'gates', title: 'Nombre premier',
+    inputs: ['N0', 'N1', 'N2'], outputs: ['Premier'],
+    desc: `<p>N = N0 + 2·N1 + 4·N2. <b>Premier</b> vaut 1 si N est un nombre premier : 2, 3, 5 ou 7.</p>
+      <p>Indice : écris les quatre nombres en binaire et cherche ce qu'ils ont en commun.</p>`,
+    tests: truthTable(3, (bits) => [[2, 3, 5, 7].includes(num(bits)) ? 1 : 0]),
+  });
+  add({
+    id: 'mult3', chapter: 'gates', title: 'Multiple de 3',
+    inputs: ['N0', 'N1', 'N2'], outputs: ['Q'],
+    desc: `<p>N = N0 + 2·N1 + 4·N2. Q vaut 1 si N est un <b>multiple de 3</b> : 0, 3 ou 6.</p>`,
+    tests: truthTable(3, (bits) => [num(bits) % 3 === 0 ? 1 : 0]),
   });
   add({
     id: 'maj', chapter: 'gates', title: 'Majorité',
