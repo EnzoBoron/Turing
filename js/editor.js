@@ -10,13 +10,14 @@
   const snap = (v) => Math.round(v / GRID) * GRID;
 
   class CircuitEditor {
-    constructor(canvas, { level, circuit, onChange, onSim }) {
+    constructor(canvas, { level, circuit, onChange, onSim, onMessage }) {
       this.canvas = canvas;
       this.ctx = canvas.getContext('2d');
       this.level = level;
       this.circuit = circuit;
       this.onChange = onChange || (() => {});
       this.onSim = onSim || (() => {});
+      this.onMessage = onMessage || (() => {});
       this.view = { x: 0, y: 0, scale: 1 };
       this.selection = null;
       this.drag = null;
@@ -303,10 +304,25 @@
 
     // -------------------------------------------------------------- Édition
 
+    // Une entrée ne reçoit qu'un seul fil : brancher deux signaux sur le même
+    // point serait un court-circuit. Le nouveau fil remplace donc l'ancien.
     connect(out, inp) {
-      this.circuit.wires = this.circuit.wires.filter((w) => !(w.to.c === inp.c && w.to.p === inp.p));
+      const old = this.circuit.wires.find((w) => w.to.c === inp.c && w.to.p === inp.p);
+      if (old && old.from.c === out.c && old.from.p === out.p) return;
+      this.circuit.wires = this.circuit.wires.filter((w) => w !== old);
       this.circuit.wires.push({ from: { c: out.c, p: out.p }, to: { c: inp.c, p: inp.p } });
+      if (old) {
+        this.onMessage(`${this.pinName(inp)} ne peut recevoir qu'un seul fil : l'ancien a été remplacé. `
+          + 'Pour combiner deux signaux, fais-les passer par une porte (AND, OR…).');
+      }
       this.changed();
+    }
+
+    pinName(pin) {
+      const c = this.circuit.components.find((o) => o.id === pin.c);
+      if (c.type === 'OUT') return 'La sortie ' + this.level.outputs[c.idx];
+      const def = getDef(c.type);
+      return `L'entrée ${def.inputs[pin.p]} de ${def.label}`;
     }
 
     addComponent(type) {

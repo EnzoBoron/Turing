@@ -61,6 +61,7 @@
 
   function leaveLevel() {
     stopRun();
+    $('c-toast').classList.add('hidden');
     if (editor) { editor.destroy(); editor = null; }
     current = null;
   }
@@ -174,7 +175,17 @@
       circuit,
       onChange: (c) => { save.circuits[lvl.id] = c; persist(); },
       onSim: updateCircuitStatus,
+      onMessage: showToast,
     });
+  }
+
+  let toastTimer = null;
+  function showToast(text) {
+    const el = $('c-toast');
+    el.textContent = text;
+    el.classList.remove('hidden');
+    clearTimeout(toastTimer);
+    toastTimer = setTimeout(() => el.classList.add('hidden'), 6000);
   }
 
   function validCircuit(c, lvl) {

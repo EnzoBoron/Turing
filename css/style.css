@@ -170,6 +170,12 @@ table.mini th { background: var(--panel-2); }
 }
 
 .close-results { float: right; border: none; background: none; font-size: 20px; line-height: 1; padding: 0 4px; color: var(--muted); }
+.canvas-toast {
+  position: absolute; left: 50%; bottom: 16px; transform: translateX(-50%);
+  width: max-content; max-width: calc(100% - 32px);
+  background: var(--panel); border: 1px solid var(--accent); border-left-width: 4px;
+  padding: 8px 12px; border-radius: 8px; font-size: 14px; box-shadow: var(--shadow);
+}
 .results { max-height: 40%; overflow: auto; background: var(--panel); border-top: 1px solid var(--border); padding: 10px 14px; flex: none; }
 .verdict { font-weight: 700; margin: 4px 0 8px; }
 .verdict.good { color: var(--good); }

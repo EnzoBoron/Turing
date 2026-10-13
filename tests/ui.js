@@ -90,6 +90,15 @@ async function main() {
   w = await wires();
   check('une entrée déjà câblée est remplacée, pas doublée', w.length === before && w.includes(`in0.0>${n2}.1`), w.join(' '));
 
+  await open('or');
+  await drag(await pin('in0', 'out'), await pin('out0', 'in'));
+  await drag(await pin('in1', 'out'), await pin('out0', 'in'));
+  w = await wires();
+  check('deux fils vers la même sortie : le second remplace le premier', w.length === 1 && w[0] === 'in1.0>out0.0', w.join(' '));
+  check('un message explique pourquoi', (await page.isVisible('#c-toast'))
+    && (await page.textContent('#c-toast')).includes('un seul fil'));
+  await open('and');
+
   const valA = () => page.evaluate(() => window.game.editor.inputVals[0]);
   const a = await pin('in0', 'out');
   await page.mouse.click(a.x - 40, a.y);
