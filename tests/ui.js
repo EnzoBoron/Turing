@@ -134,6 +134,21 @@ async function main() {
   await open('max');
   check('un niveau d\'assemblage montre un exemple', (await page.textContent('#a-desc .example')).includes('Sorties attendues'));
 
+  console.log('Nouvelles instructions');
+  await open('sum');
+  await page.fill('#a-code', 'shl');
+  await page.dispatchEvent('#a-code', 'input');
+  check('shl refusé avant son niveau', (await page.textContent('#a-cpu')).includes('pas encore débloquée'));
+  await open('squares');
+  check('la référence signale call comme nouveau', (await page.textContent('#a-isa')).includes('nouveau'));
+  check('la mémoire et la pile sont affichées', (await page.isVisible('#a-cpu .ram'))
+    && (await page.textContent('#a-cpu')).includes('Pile d'));
+  await page.fill('#a-code', 'imm 7\nmov r0 r1\nmov r0 r2\nstore\ncall f\nf:\njmp f');
+  await page.dispatchEvent('#a-code', 'input');
+  for (let k = 0; k < 6; k++) await page.click('#a-step');
+  check('store remplit la case 7', (await page.textContent('#a-cpu .ram div:nth-child(8) b')) === '7');
+  check('call empile l\'adresse de retour', (await page.textContent('#a-cpu')).includes('vide') === false);
+
   console.log('Fichier de sauvegarde');
   await page.click('#home-btn');
   const [download] = await Promise.all([page.waitForEvent('download'), page.click('#export-save')]);

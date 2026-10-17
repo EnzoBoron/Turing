@@ -28,7 +28,7 @@ ou pour garder une copie de sécurité.
 | **1. Portes logiques** | NAND, NOT, AND, OR, NOR, XOR, XNOR (chaque porte construite est débloquée comme composant), puis 17 énigmes qui les combinent : constantes, AND/OR à 3 entrées, implication, alarme, parité, unanimité, comparateurs, nombres premiers, multiples de 3, majorité… |
 | **2. Composants** | Demi-additionneur, additionneur complet, multiplexeur, décodeur, puis la mémoire : le composant DÉLAI, l'oscillateur, le bit de mémoire et le compteur. |
 | **3. Architecture** | ALU 1 bit, unité de condition, décodeur 3 bits, registre, compteur de programme, puis l'assemblage du processeur **NANDO-8**, un ordinateur Turing-complet. |
-| **4. Assemblage** | Programmation du NANDO-8 : d'abord en code machine brut, puis avec des mnémoniques, des étiquettes et des constantes. Énigmes : écho, addition, parité, compte à rebours, maximum, multiplication, somme… |
+| **4. Assemblage** | Programmation du NANDO-8 : d'abord en code machine brut, puis avec des mnémoniques, des étiquettes et des constantes. Énigmes : écho, addition, parité, compte à rebours, maximum, multiplication, somme, division… Puis de nouvelles instructions se débloquent : décalages (`shl`, `shr`), mémoire (`load`, `store`) et fonctions (`call`, `ret`), avec des défis comme compter les bits, écrire en binaire, inverser une liste, trier ou calculer a² + b². |
 
 ## Commandes de l'éditeur de circuits
 
@@ -52,6 +52,17 @@ Six registres de 8 bits (R0 à R5), chaque instruction tient sur un octet :
 
 Mnémoniques : `imm v`, `mov s d`, `add`, `sub`…, `jmp`, `jz`, `jnz`, `jlt`, `jle`, `jgt`, `jge`, `nop`.
 `jz etiquette` est un raccourci pour `imm etiquette` suivi de `jz`.
+
+Instructions débloquées au fil du chapitre Assemblage (champ `introduces` des niveaux) :
+
+| Mnémonique | Octet | Effet |
+| --- | --- | --- |
+| `shl` | `01001000` | R3 = R1 décalé d'un cran à gauche (× 2) |
+| `shr` | `01001001` | R3 = R1 décalé d'un cran à droite (÷ 2) |
+| `load` | `01010000` | R3 = RAM[R1] (mémoire de 256 cases, séparée du programme) |
+| `store` | `01010001` | RAM[R1] = R2 |
+| `call etiquette` | `11001000` | empile l'adresse suivante, puis PC = R0 (pile de 16 appels) |
+| `ret` | `11001001` | PC = adresse dépilée |
 
 ## Structure du code
 
@@ -91,7 +102,8 @@ Ajoute une entrée dans `js/levels.js` :
 - **circuit** : `inputs`, `outputs`, `tests` (via `truthTable` ou `sequence`), `pins` (une phrase
   par entrée et par sortie, affichée sous l'énoncé ; `bitPins('A', 2)` décrit les bits d'un nombre),
   et optionnellement `unlock` (composant débloqué, à définir dans `js/components.js`) ;
-- **asm** : `tests` sous forme de `{ inputs: [...], outputs: [...] }`, et `group: 2` si les entrées
+- **asm** : `tests` sous forme de `{ inputs: [...], outputs: [...] }`, `introduces` pour présenter de
+  nouvelles instructions (elles restent disponibles dans les niveaux suivants), et `group: 2` si les entrées
   se lisent par paires (l'exemple de l'énoncé les affiche alors groupées).
 
 La table attendue (repliée) et l'exemple d'entrées et de sorties sont générés à partir des tests.

@@ -993,6 +993,165 @@ id: 'max', chapter: 'assembly', group: 2, title: 'Le plus grand',
     }),
   });
 
+  // ------------------------------------------- Défis et nouvelles instructions
+
+  addAsm({
+    id: 'div', chapter: 'assembly', group: 2, title: 'Division',
+    desc: `<p>Après la multiplication, la division ! Le processeur ne sait pas diviser, mais diviser, c'est compter
+      combien de fois on peut retirer un nombre d'un autre. Par exemple, pour 17 ÷ 5 : 17 − 5 = 12, 12 − 5 = 7,
+      7 − 5 = 2, et on ne peut plus retirer 5. On a retiré 5 trois fois, donc 17 ÷ 5 = 3 (et il reste 2).</p>
+      <p><b>Objectif :</b> les entrées arrivent par paires (a, b), avec a de 0 à 100 et b de 1 à 12. Pour chaque
+      paire, écris le <b>quotient</b> de a par b, c'est-à-dire le résultat de la division sans la virgule
+      (on oublie le reste).</p>
+      <p>Exemples : (17, 5) donne 3 ; (12, 4) donne 3 ; (3, 7) donne 0.</p>`,
+    hint: 'Comme pour la multiplication, fais d\'abord la liste des valeurs à retenir d\'un tour à l\'autre, et décide quelle boîte garde quoi.',
+    tests: asmTests(3, (r) => {
+      const pairs = Array.from({ length: 4 }, () => [randInt(r, 0, 100), randInt(r, 1, 12)]);
+      pairs.push([randInt(r, 0, 6), 7], [randInt(r, 0, 100), 1]);
+      return { inputs: pairs.flat(), outputs: pairs.map(([a, c]) => Math.floor(a / c)) };
+    }),
+  });
+  addAsm({
+    id: 'quarter', chapter: 'assembly', title: 'Décalages', introduces: ['shl', 'shr'],
+    desc: `<p><b>Nouvelles instructions :</b> <code>shl</code> et <code>shr</code>, de l'anglais <i>shift left</i>
+      et <i>shift right</i> : « décaler à gauche » et « décaler à droite ».</p>
+      <p>Elles font glisser tous les bits de R1 d'un cran, et mettent le résultat dans R3 :</p>
+      <pre class="addition">shl :   0 0 0 1 0 1 1 0   (22)
+     →  0 0 1 0 1 1 0 0   (44)   un 0 entre à droite
+
+shr :   0 0 0 1 0 1 1 0   (22)
+     →  0 0 0 0 1 0 1 1   (11)   un 0 entre à gauche</pre>
+      <p>En décimal, ajouter un 0 à droite multiplie par 10. En binaire, c'est pareil avec 2 :
+      <b><code>shl</code> multiplie par 2</b>, et <b><code>shr</code> divise par 2</b> en oubliant le reste
+      (7 donne 3). Le bit qui « tombe » du bord est perdu.</p>
+      <p><b>Objectif :</b> pour chaque entrée x, écris x ÷ 4, sans la virgule.</p>
+      <p>Exemples : 20 donne 5 ; 7 donne 1 ; 255 donne 63.</p>`,
+    tests: asmTests(3, (r) => {
+      const xs = Array.from({ length: 6 }, () => randInt(r, 0, 255));
+      return { inputs: xs, outputs: xs.map((x) => x >> 2) };
+    }),
+  });
+  addAsm({
+    id: 'times10', chapter: 'assembly', title: 'Fois dix',
+    desc: `<p><b>Objectif :</b> pour chaque entrée x (de 0 à 25), écris 10 × x.</p>
+      <p>Exemples : 3 donne 30 ; 25 donne 250.</p>
+      <p>Avec <code>shl</code>, tu sais multiplier par 2, 4, 8… très vite, sans boucle. Mais 10 n'est pas une
+      puissance de 2 : à toi de trouver comment l'obtenir. Défi : fais-le sans aucune boucle.</p>`,
+    hint: '10 × x = 8 × x + 2 × x.',
+    tests: asmTests(3, (r) => {
+      const xs = Array.from({ length: 6 }, () => randInt(r, 0, 25));
+      return { inputs: xs, outputs: xs.map((x) => 10 * x) };
+    }),
+  });
+  addAsm({
+    id: 'popcount', chapter: 'assembly', title: 'Compter les 1',
+    desc: `<p><b>Objectif :</b> pour chaque entrée x (de 0 à 255), écris combien de bits de x valent 1.</p>
+      <p>Exemples : 0 (<code>00000000</code>) donne 0 ; 5 (<code>00000101</code>) donne 2 ;
+      255 (<code>11111111</code>) donne 8.</p>
+      <p>C'est une vraie instruction des processeurs modernes, appelée <i>popcount</i>, très utilisée en
+      cryptographie et pour compresser des données.</p>`,
+    hint: 'Tu sais déjà lire le dernier bit d\'un nombre (niveau Pair ou impair). Et shr fait glisser le bit suivant à la dernière place.',
+    tests: asmTests(3, (r) => {
+      const xs = Array.from({ length: 5 }, () => randInt(r, 0, 255));
+      xs.push(r() < 0.5 ? 0 : 255);
+      return { inputs: xs, outputs: xs.map((x) => x.toString(2).split('').filter((b) => b === '1').length) };
+    }),
+  });
+  addAsm({
+    id: 'to_binary', chapter: 'assembly', title: 'Écrire en binaire',
+    desc: `<p><b>Objectif :</b> pour chaque entrée x, écris ses <b>8 bits</b> un par un, en commençant par celui de
+      gauche (celui qui compte pour 128). Chaque entrée donne donc 8 sorties, qui valent 0 ou 1.</p>
+      <p>Exemple : 6 s'écrit <code>00000110</code>, donc ses sorties sont 0, 0, 0, 0, 0, 1, 1, 0.</p>
+      <p>Difficulté : <code>imm</code> ne va que jusqu'à 63, tu ne peux donc pas écrire directement 128 pour tester
+      le bit de gauche.</p>`,
+    hint: 'Les sauts lisent R3 comme un nombre signé : un octet dont le bit de gauche vaut 1 compte comme un nombre négatif. Quel saut teste ça ?',
+    tests: asmTests(3, (r) => {
+      const xs = Array.from({ length: 3 }, () => randInt(r, 0, 255));
+      return { inputs: xs, outputs: xs.flatMap((x) => x.toString(2).padStart(8, '0').split('').map(Number)) };
+    }),
+  });
+  addAsm({
+    id: 'lookup', chapter: 'assembly', title: 'Le carnet', introduces: ['load', 'store'],
+    desc: `<p><b>Nouvelle pièce :</b> une <b>mémoire</b> (RAM) de 256 cases, numérotées de 0 à 255. Chaque case
+      garde un nombre de 0 à 255, comme un registre, mais il y en a beaucoup plus. Tu vois les premières à droite,
+      sous les registres.</p>
+      <p>Deux nouvelles instructions, qui utilisent R1 pour le <b>numéro de la case</b> (on dit son <i>adresse</i>) :</p>
+      <ul><li><code>store</code> : range R2 dans la case n° R1 ;</li>
+      <li><code>load</code> : lit la case n° R1 et met sa valeur dans R3.</li></ul>
+      <p>Exemple : avec R1 = 3 et R2 = 42, <code>store</code> écrit 42 dans la case 3. Plus tard, avec R1 = 3,
+      <code>load</code> met 42 dans R3.</p>
+      <p><b>Objectif :</b> les 8 premières entrées forment un <b>carnet</b> : la 1re est la valeur n° 0, la 2e la
+      valeur n° 1… jusqu'à la n° 7. Ensuite, chaque entrée est un <b>numéro</b> de 0 à 7 : écris la valeur du carnet
+      qui porte ce numéro.</p>
+      <p>Exemple : le carnet 10, 20, 30, 40, 50, 60, 70, 80, puis les numéros 2, 0, 7 donnent 30, 10, 80.</p>`,
+    tests: asmTests(3, (r) => {
+      const table = Array.from({ length: 8 }, () => randInt(r, 0, 255));
+      const qs = Array.from({ length: 6 }, () => randInt(r, 0, 7));
+      return { inputs: table.concat(qs), outputs: qs.map((q) => table[q]) };
+    }),
+  });
+  addAsm({
+    id: 'reverse', chapter: 'assembly', title: 'À l\'envers',
+    desc: `<p><b>Objectif :</b> lis des nombres jusqu'à recevoir un <b>0</b>, puis réécris-les dans l'<b>ordre inverse</b>
+      (sans le 0). Ensuite, recommence avec la liste suivante.</p>
+      <p>Exemple : 4, 8, 15, 0 donne 15, 8, 4.</p>
+      <p>Les listes ont jusqu'à 6 nombres : trop pour les garder dans les registres. C'est le moment d'utiliser la mémoire.</p>`,
+    hint: 'Range chaque nombre dans la case suivante (0, 1, 2…) en comptant combien tu en as rangé. Pour les relire à l\'envers, repars de la dernière case.',
+    tests: asmTests(3, (r) => {
+      const ins = [];
+      const outs = [];
+      for (let g = 0; g < 2; g++) {
+        const xs = Array.from({ length: randInt(r, 1, 6) }, () => randInt(r, 1, 99));
+        ins.push(...xs, 0);
+        outs.push(...xs.slice().reverse());
+      }
+      return { inputs: ins, outputs: outs };
+    }),
+  });
+  addAsm({
+    id: 'sort', chapter: 'assembly', title: 'Le tri',
+    desc: `<p>Trier, c'est ranger des nombres du plus petit au plus grand. Les ordinateurs passent un temps fou à trier :
+      les résultats d'une recherche, une liste de contacts, un classement…</p>
+      <p><b>Objectif :</b> lis <b>5 nombres</b> (de 0 à 100), puis écris-les du plus petit au plus grand. Un même
+      nombre peut apparaître plusieurs fois : il faut alors l'écrire autant de fois.</p>
+      <p>Exemple : 42, 7, 99, 7, 13 donne 7, 7, 13, 42, 99.</p>
+      <p>Il existe beaucoup de façons de trier. Cherche celle qui te paraît la plus simple avec tes instructions :
+      il y en a une étonnamment courte.</p>`,
+    hint: 'Une idée parmi d\'autres : utilise les cases de la mémoire comme des compteurs. La case n° 42 peut compter combien de fois tu as vu le nombre 42.',
+    tests: asmTests(3, (r) => {
+      const xs = Array.from({ length: 5 }, () => randInt(r, 0, 100));
+      if (r() < 0.7) xs[randInt(r, 1, 4)] = xs[0];
+      return { inputs: xs, outputs: xs.slice().sort((a, c) => a - c) };
+    }),
+    maxSteps: 20000,
+  });
+  addAsm({
+    id: 'squares', chapter: 'assembly', group: 2, title: 'Fonctions', introduces: ['call', 'ret'],
+    desc: `<p><b>Nouvelles instructions :</b> <code>call</code> et <code>ret</code>, pour écrire des <b>fonctions</b> :
+      un morceau de programme qu'on peut utiliser plusieurs fois sans le recopier.</p>
+      <ul><li><code>call etiquette</code> saute à l'étiquette, comme <code>jmp</code>, mais <b>retient d'où il vient</b> ;</li>
+      <li><code>ret</code> (<i>return</i>, « retour ») revient juste après le dernier <code>call</code>.</li></ul>
+      <pre class="addition">  call carre ──┐   ①
+  mov r3 out ◄─┼──┐   ③
+               │  │
+carre:    ◄────┘  │
+  …               │   ②
+  ret    ─────────┘</pre>
+      <p>① <code>call</code> saute à <code>carre</code> ; ② la fonction fait son travail ; ③ <code>ret</code>
+      revient à la ligne juste après le <code>call</code>.</p>
+      <p>Les adresses de retour sont rangées dans une <b>pile d'appels</b>, visible à droite. Comme <code>jmp</code>,
+      <code>call etiquette</code> utilise R0 en cachette.</p>
+      <p><b>Objectif :</b> les entrées arrivent par paires (a, b), de 0 à 10. Pour chaque paire, écris a² + b²,
+      c'est-à-dire a × a + b × b.</p>
+      <p>Exemple : (3, 4) donne 9 + 16 = 25.</p>
+      <p>Écris une fonction qui calcule le carré d'un nombre, et appelle-la deux fois.</p>`,
+    hint: 'Choisis une règle pour ta fonction, par exemple « elle reçoit le nombre dans R1 et rend le carré dans R3 ». Elle va abîmer des registres : range a² en mémoire avant de calculer b².',
+    tests: asmTests(3, (r) => {
+      const pairs = Array.from({ length: 3 }, () => [randInt(r, 0, 10), randInt(r, 0, 10)]);
+      return { inputs: pairs.flat(), outputs: pairs.map(([a, c]) => a * a + c * c) };
+    }),
+  });
+
   const api = { CHAPTERS, LEVELS, truthTable, sequence, rng };
   global.Levels = api;
   if (typeof module !== 'undefined') module.exports = api;

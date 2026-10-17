@@ -39,6 +39,14 @@
   };
   const chapterOf = (lvl) => CHAPTERS.find((c) => c.id === lvl.chapter);
 
+  // Instructions supplémentaires disponibles dans un niveau d'assemblage :
+  // celles présentées par ce niveau et par les niveaux qui le précèdent.
+  function extFor(lvl) {
+    const list = [];
+    for (const l of LEVELS.slice(0, levelIndex(lvl.id) + 1)) for (const op of l.introduces || []) list.push(op);
+    return list;
+  }
+
   // Composants disponibles : NAND + ceux débloqués par les niveaux précédents.
   function paletteFor(lvl) {
     const list = ['NAND'];
@@ -100,7 +108,8 @@
         b.className = 'level-card' + (isDone(lvl) ? ' done' : '') + (unlocked ? '' : ' locked');
         b.disabled = !unlocked;
         const icon = isDone(lvl) ? '✓' : unlocked ? (lvl.type === 'asm' ? '⌨' : lvl.type === 'lesson' ? '◆' : '⊼') : '🔒';
-        const unlockTxt = lvl.unlock ? `<span class="unlock">débloque ${esc(COMPONENTS[lvl.unlock].label)}</span>` : '';
+        const unlockTxt = lvl.unlock ? `<span class="unlock">débloque ${esc(COMPONENTS[lvl.unlock].label)}</span>`
+          : lvl.introduces ? `<span class="unlock">nouveau : ${esc(lvl.introduces.join(', '))}</span>` : '';
         b.innerHTML = `<span class="lv-icon">${icon}</span><span class="lv-title">${esc(lvl.title)}</span>${unlockTxt}`;
         b.addEventListener('click', () => openLevel(lvl));
         grid.appendChild(b);
@@ -315,7 +324,18 @@
 
   // ---------------------------------------------------------- Référence
 
-  function isaHtml(raw) {
+  const EXT_HELP = {
+    shl: ['01001000', 'R3 = R1 décalé à gauche (× 2)'],
+    shr: ['01001001', 'R3 = R1 décalé à droite (÷ 2)'],
+    load: ['01010000', 'R3 = case mémoire n° R1'],
+    store: ['01010001', 'case mémoire n° R1 = R2'],
+    call: ['11001000', 'retient l\'adresse suivante, puis PC = R0'],
+    ret: ['11001001', 'revient après le dernier call'],
+  };
+
+  function isaHtml(raw, ext = [], fresh = []) {
+    const extRows = ext.map((op) => `<tr${fresh.includes(op) ? ' class="fresh"' : ''}><td><code>${op}${op === 'call' ? ' etiq' : ''}</code></td>`
+      + `<td><code>${EXT_HELP[op][0]}</code></td><td>${EXT_HELP[op][1]}${fresh.includes(op) ? ' <b class="new-tag">nouveau</b>' : ''}</td></tr>`).join('');
     const ops = Nando.ALU_OPS.map((o, i) => `<tr><td><code>${o}</code></td><td><code>01000${i.toString(2).padStart(3, '0')}</code></td><td>R3 = R1 ${o.toUpperCase()} R2</td></tr>`).join('');
     const conds = Object.keys(Nando.CONDS).map((k) => `<tr><td><code>${k}</code></td><td><code>11000${Nando.CONDS[k].toString(2).padStart(3, '0')}</code></td><td>${k === 'nop' ? 'ne fait rien' : 'PC = R0 si R3 ' + Nando.COND_NAMES[Nando.CONDS[k]]}</td></tr>`).join('');
     return `<summary>Référence NANDO-8</summary>
@@ -332,7 +352,7 @@
       <table class="mini isa-table">
         <tr><td><code>imm v</code></td><td><code>00vvvvvv</code></td><td>R0 = v</td></tr>
         <tr><td><code>mov s d</code></td><td><code>10sssddd</code></td><td>s : r0…r5, <code>in</code> ; d : r0…r5, <code>out</code></td></tr>
-        ${ops}${conds}
+        ${ops}${conds}${extRows}
       </table>
       <p class="note"><code>jz etiquette</code> est un raccourci pour <code>imm etiquette</code> puis <code>jz</code> : il écrase R0.</p>`}
       <h4>Syntaxe</h4>
@@ -352,7 +372,7 @@
   function openAsm(lvl) {
     $('a-title').textContent = lvl.title;
     $('a-desc').innerHTML = lvl.desc + asmGuide(lvl);
-    $('a-isa').innerHTML = isaHtml(lvl.raw);
+    $('a-isa').innerHTML = isaHtml(lvl.raw, extFor(lvl), lvl.introduces || []);
     $('a-results').classList.add('hidden');
     const sel = $('a-test');
     sel.innerHTML = lvl.tests.map((t, i) => `<option value="${i}">${i + 1}</option>`).join('');
@@ -366,7 +386,7 @@
   function reassemble() {
     const lvl = current;
     stopRun();
-    asm.result = Nando.assemble($('a-code').value, { raw: lvl.raw });
+    asm.result = Nando.assemble($('a-code').value, { raw: lvl.raw, ext: extFor(lvl) });
     resetCpu();
   }
 
@@ -406,6 +426,15 @@
     html += `<div class="cpu-row"><span>PC</span><b>${cpu.pc}</b><span class="dis">${ins === undefined ? '—' : esc(Nando.disassemble(ins))}</span></div>`;
     html += '<div class="regs">' + cpu.reg.map((v, i) => `<div class="reg"><span>R${i}</span><b>${v}</b><small>${bin8(v)}</small></div>`).join('') + '</div>';
     html += `<div class="cpu-row"><span>Instructions</span><b>${cpu.steps}</b><span class="dis">${res.bytes.length} octets</span></div>`;
+    const ext = extFor(current);
+    if (ext.includes('load')) {
+      html += '<h4>Mémoire <small>(cases 0 à 15)</small></h4><div class="ram">' + cpu.ram.slice(0, 16)
+        .map((v, i) => `<div class="${v ? 'set' : ''}"><span>${i}</span><b>${v}</b></div>`).join('') + '</div>';
+    }
+    if (ext.includes('call')) {
+      html += '<h4>Pile d\'appels</h4><div class="io-list">' + (cpu.stack.length
+        ? cpu.stack.map((a) => `<span title="adresse de retour">${a}</span>`).join('') : '<em>vide</em>') + '</div>';
+    }
     html += '<h4>Entrées</h4><div class="io-list">' + (test.inputs.length
       ? test.inputs.map((v, i) => `<span class="${i < cpu.inPtr ? 'used' : i === cpu.inPtr ? 'next' : ''}">${v}</span>`).join('')
       : '<em>aucune</em>') + '</div>';

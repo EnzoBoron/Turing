@@ -5,6 +5,14 @@
 //   01000ooo  CALCUL    R3 <- R1 op R2
 //   10sssddd  COPIE     d <- s   (registres 0..5, 6 = entrée / sortie)
 //   11000ccc  SAUT      si condition(R3) alors PC <- R0
+//
+// Extensions débloquées au fil du chapitre Assemblage :
+//   01001000  shl    R3 <- R1 décalé d'un cran vers la gauche (× 2)
+//   01001001  shr    R3 <- R1 décalé d'un cran vers la droite (÷ 2)
+//   01010000  load   R3 <- RAM[R1]
+//   01010001  store  RAM[R1] <- R2
+//   11001000  call   empile PC + 1, puis PC <- R0
+//   11001001  ret    PC <- adresse dépilée
 (function (global) {
   'use strict';
 
@@ -14,6 +22,11 @@
   const COND_NAMES = ['jamais', '= 0', '< 0', '≤ 0', 'toujours', '≠ 0', '≥ 0', '> 0'];
   const REGS = { r0: 0, r1: 1, r2: 2, r3: 3, r4: 4, r5: 5, in: 6, out: 6 };
   const IO = 6;
+  // Instructions supplémentaires : nom -> octet. Toutes sauf call s'écrivent sans argument.
+  const EXT_OPS = { shl: 0b01001000, shr: 0b01001001, load: 0b01010000, store: 0b01010001, call: 0b11001000, ret: 0b11001001 };
+  const EXT_NAMES = Object.fromEntries(Object.entries(EXT_OPS).map(([k, v]) => [v, k]));
+  const RAM_SIZE = 256;
+  const STACK_MAX = 16;
 
   const toSigned = (v) => (v & 0x80 ? v - 256 : v);
 
@@ -99,19 +112,30 @@
   }
 
   function isMnemonic(word) {
-    return word === 'imm' || word === 'mov' || ALU_OPS.includes(word) || word in CONDS;
+    return word === 'imm' || word === 'mov' || ALU_OPS.includes(word) || word in CONDS || word in EXT_OPS;
   }
 
   // Taille en octets d'une ligne d'instruction (avant résolution).
   function lineSize(tokens, raw) {
     const head = tokens[0].toLowerCase();
-    if (!raw && head in CONDS && head !== 'nop' && tokens.length > 1) return 2;
+    if (!raw && (head in CONDS || head === 'call') && head !== 'nop' && tokens.length > 1) return 2;
     return 1;
   }
 
-  function encodeLine(tokens, symbols, raw) {
+  function encodeLine(tokens, symbols, raw, ext) {
     const head = tokens[0].toLowerCase();
     const rest = tokens.slice(1);
+    if (!raw && head in EXT_OPS) {
+      if (ext && !ext.includes(head)) throw new Error('Instruction pas encore débloquée : ' + head);
+      if (head === 'call') {
+        if (!rest.length) return [EXT_OPS.call];
+        const target = evalExpr(rest, symbols);
+        if (target < 0 || target > 63) throw new Error('Cible d\'appel hors de portée de imm (0..63) : ' + target);
+        return [target, EXT_OPS.call];
+      }
+      if (rest.length) throw new Error(head + ' ne prend pas d\'argument');
+      return [EXT_OPS[head]];
+    }
     if (raw || !isMnemonic(head)) {
       const v = evalExpr(tokens, symbols);
       if (v < -128 || v > 255) throw new Error('Un octet vaut de 0 à 255 (reçu ' + v + ')');
@@ -143,8 +167,11 @@
     return [target, code];
   }
 
+  // opts.raw : octets bruts ; opts.ext : liste des instructions supplémentaires
+  // autorisées (toutes si absent).
   function assemble(source, opts = {}) {
     const raw = !!opts.raw;
+    const ext = opts.ext || null;
     const lines = source.split('\n');
     const symbols = {};
     const errors = [];
@@ -185,7 +212,7 @@
     const addrToLine = [];
     for (const p of parsed) {
       try {
-        const enc = encodeLine(p.tokens, symbols, raw);
+        const enc = encodeLine(p.tokens, symbols, raw, ext);
         enc.forEach((byte) => { addrToLine[bytes.length] = p.line; bytes.push(byte); });
         lineInfo[p.line] = { addr: p.addr, bytes: enc };
       } catch (e) {
@@ -200,13 +227,15 @@
   function disassemble(byte) {
     const mode = byte >> 6;
     if (mode === 0) return 'imm ' + (byte & 63);
-    if (mode === 1) return ALU_OPS[byte & 7];
+    if (byte in EXT_NAMES) return EXT_NAMES[byte];
+    if (mode === 1) return (byte & 0b111000) ? '???' : ALU_OPS[byte & 7];
     if (mode === 2) {
       const s = (byte >> 3) & 7;
       const d = byte & 7;
       const name = (r, io) => (r === IO ? io : r === 7 ? '?' : 'r' + r);
       return 'mov ' + name(s, 'in') + ' ' + name(d, 'out');
     }
+    if (byte & 0b111000) return '???';
     return Object.keys(CONDS).find((k) => CONDS[k] === (byte & 7));
   }
 
@@ -222,6 +251,13 @@
       this.outputs = [];
       this.steps = 0;
       this.error = null;
+      this.ram = new Array(RAM_SIZE).fill(0);
+      this.stack = [];
+    }
+
+    fail(msg) {
+      this.error = msg;
+      return false;
     }
 
     step() {
@@ -237,7 +273,13 @@
         this.reg[0] = ins & 63;
         this.pc++;
       } else if (mode === 1) {
-        this.reg[3] = alu(ins & 7, this.reg[1], this.reg[2]);
+        const group = (ins >> 3) & 7;
+        if (group === 0) this.reg[3] = alu(ins & 7, this.reg[1], this.reg[2]);
+        else if (ins === EXT_OPS.shl) this.reg[3] = (this.reg[1] << 1) & 255;
+        else if (ins === EXT_OPS.shr) this.reg[3] = this.reg[1] >> 1;
+        else if (ins === EXT_OPS.load) this.reg[3] = this.ram[this.reg[1]];
+        else if (ins === EXT_OPS.store) this.ram[this.reg[1]] = this.reg[2];
+        else return this.fail('Instruction inconnue : ' + ins + ' (0b' + ins.toString(2).padStart(8, '0') + ').');
         this.pc++;
       } else if (mode === 2) {
         const s = (ins >> 3) & 7;
@@ -259,6 +301,15 @@
           return false;
         } else this.reg[d] = v;
         this.pc++;
+      } else if (ins === EXT_OPS.call) {
+        if (this.stack.length >= STACK_MAX) return this.fail('Pile d\'appels pleine : plus de ' + STACK_MAX + ' call sans ret.');
+        this.stack.push((this.pc + 1) & 255);
+        this.pc = this.reg[0];
+      } else if (ins === EXT_OPS.ret) {
+        if (!this.stack.length) return this.fail('ret sans call : la pile d\'appels est vide.');
+        this.pc = this.stack.pop();
+      } else if (ins & 0b111000) {
+        return this.fail('Instruction inconnue : ' + ins + ' (0b' + ins.toString(2).padStart(8, '0') + ').');
       } else {
         this.pc = condition(ins & 7, this.reg[3]) ? this.reg[0] : this.pc + 1;
       }
@@ -290,7 +341,7 @@
   }
 
   const api = {
-    ALU_OPS, CONDS, COND_NAMES, REGS, alu, condition, toSigned,
+    ALU_OPS, CONDS, COND_NAMES, REGS, EXT_OPS, RAM_SIZE, alu, condition, toSigned,
     assemble, disassemble, CPU, runTest,
   };
   global.Nando = api;

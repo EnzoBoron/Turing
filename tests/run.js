@@ -195,6 +195,222 @@ fin:
   mov r2 out
   jmp debut`;
 
+// Défis avec les nouvelles instructions.
+PROGRAMS.div = `debut:
+  mov in r4      # a
+  mov in r5      # b
+  imm 0
+  mov r0 r2      # q = 0, gardé dans r2
+boucle:
+  mov r2 r0      # q à l'abri
+  mov r4 r1
+  mov r5 r2
+  sub            # r3 = a - b
+  mov r0 r2      # q revient
+  jlt fin
+  mov r3 r4      # a = a - b
+  imm 1
+  mov r2 r1
+  mov r0 r2
+  add            # r3 = q + 1
+  mov r3 r2
+  jmp boucle
+fin:
+  mov r2 out
+  jmp debut`;
+PROGRAMS.quarter = `debut:
+  mov in r1
+  shr
+  mov r3 r1
+  shr
+  mov r3 out
+  jmp debut`;
+PROGRAMS.times10 = `debut:
+  mov in r1
+  shl
+  mov r3 r4      # 2x
+  mov r3 r1
+  shl
+  mov r3 r1
+  shl            # 8x
+  mov r3 r1
+  mov r4 r2
+  add
+  mov r3 out
+  jmp debut`;
+PROGRAMS.popcount = `debut:
+  mov in r4      # x
+  imm 0
+  mov r0 r5      # compte
+boucle:
+  mov r4 r3
+  jz fin
+  mov r4 r1
+  imm 1
+  mov r0 r2
+  and            # dernier bit
+  mov r3 r2
+  mov r5 r1
+  add
+  mov r3 r5
+  mov r4 r1
+  shr
+  mov r3 r4
+  jmp boucle
+fin:
+  mov r5 out
+  jmp debut`;
+PROGRAMS.to_binary = `debut:
+  mov in r4
+  imm 8
+  mov r0 r5
+bit:
+  mov r4 r3
+  jlt un
+  imm 0
+  mov r0 out
+  jmp suite
+un:
+  imm 1
+  mov r0 out
+suite:
+  mov r4 r1
+  shl
+  mov r3 r4
+  mov r5 r1
+  imm 1
+  mov r0 r2
+  sub
+  mov r3 r5
+  jnz bit
+  jmp debut`;
+PROGRAMS.lookup = `  imm 0
+  mov r0 r4
+remplir:
+  mov r4 r1
+  mov in r2
+  store
+  imm 1
+  mov r0 r2
+  add
+  mov r3 r4
+  imm 8
+  mov r0 r2
+  mov r4 r1
+  sub
+  jnz remplir
+lire:
+  mov in r1
+  load
+  mov r3 out
+  jmp lire`;
+PROGRAMS.reverse = `debut:
+  imm 0
+  mov r0 r4      # n
+lire:
+  mov in r3
+  jz ecrire
+  mov r3 r2
+  mov r4 r1
+  store
+  imm 1
+  mov r0 r2
+  add
+  mov r3 r4
+  jmp lire
+ecrire:
+  mov r4 r3
+  jz debut
+  mov r4 r1
+  imm 1
+  mov r0 r2
+  sub
+  mov r3 r4
+  mov r4 r1
+  load
+  mov r3 out
+  jmp ecrire`;
+PROGRAMS.sort = `  imm 5
+  mov r0 r5      # nombres à lire
+lire:
+  mov in r1
+  load           # r3 = RAM[x]
+  mov r1 r4
+  mov r3 r1
+  imm 1
+  mov r0 r2
+  add
+  mov r3 r2
+  mov r4 r1
+  store          # RAM[x] = RAM[x] + 1
+  mov r5 r1
+  imm 1
+  mov r0 r2
+  sub
+  mov r3 r5
+  jnz lire
+  imm 0
+  mov r0 r4      # v = 0
+valeur:
+  mov r4 r1
+  load
+  jz suivante
+  mov r4 out
+  mov r3 r1
+  imm 1
+  mov r0 r2
+  sub
+  mov r3 r2
+  mov r4 r1
+  store
+  jmp valeur
+suivante:
+  mov r4 r1
+  imm 1
+  mov r0 r2
+  add
+  mov r3 r4
+  jmp valeur`;
+PROGRAMS.squares = `debut:
+  mov in r1
+  call carre     # r3 = a²
+  mov r3 r2
+  imm 0
+  mov r0 r1
+  store          # RAM[0] = a²
+  mov in r1
+  call carre     # r3 = b²
+  mov r3 r2
+  imm 0
+  mov r0 r1
+  load           # r3 = a²
+  mov r3 r1
+  add
+  mov r3 out
+  jmp debut
+
+carre:           # r3 = r1 × r1
+  mov r1 r4
+  mov r1 r5
+  imm 0
+  mov r0 r2
+cboucle:
+  mov r5 r3
+  jz cfin
+  mov r4 r1
+  add
+  mov r5 r1
+  imm 1
+  mov r0 r2
+  mov r3 r0
+  sub
+  mov r3 r5
+  mov r0 r2
+  jmp cboucle
+cfin:
+  mov r2 r3
+  ret`;
+
 // Programme volontairement faux : le testeur doit le rejeter.
 const WRONG_MUL = `debut:
   mov in r1
@@ -218,9 +434,12 @@ for (const lvl of LEVELS.filter((l) => l.type === 'circuit')) {
 }
 
 console.log('Niveaux d\'assemblage');
+// Instructions supplémentaires disponibles à un niveau (même règle que dans le jeu).
+const extFor = (lvl) => LEVELS.slice(0, LEVELS.indexOf(lvl) + 1).flatMap((l) => l.introduces || []);
+
 for (const lvl of LEVELS.filter((l) => l.type === 'asm')) {
   const src = PROGRAMS[lvl.id];
-  const asm = Nando.assemble(src, { raw: lvl.raw });
+  const asm = Nando.assemble(src, { raw: lvl.raw, ext: extFor(lvl) });
   if (asm.errors.length) { check(lvl.id, false, JSON.stringify(asm.errors)); continue; }
   const results = lvl.tests.map((t) => Nando.runTest(asm.bytes, t, lvl.maxSteps || 5000));
   const bad = results.find((r) => !r.ok);
@@ -240,6 +459,18 @@ console.log('Assembleur et CPU');
   check('binaire invalide refusé', Nando.assemble('0b005', { raw: true }).errors.length === 1);
   check('octet trop grand refusé', Nando.assemble('300', { raw: true }).errors.length === 1);
   check('octet négatif accepté', Nando.assemble('-1', { raw: true }).bytes[0] === 255);
+  check('instruction pas encore débloquée', Nando.assemble('shl', { ext: [] }).errors.length === 1);
+  {
+    const cpu = new Nando.CPU(Nando.assemble('imm 5\nmov r0 r1\nshl\nmov r3 r2\nstore\nload\ncall f\nmov r3 out\nf:\nret').bytes, []);
+    for (let k = 0; k < 9; k++) cpu.step();
+    check('shl, store, load', cpu.reg[3] === 10 && cpu.ram[5] === 10);
+    cpu.step();
+    check('call puis ret', cpu.outputs[0] === 10 && cpu.stack.length === 0, JSON.stringify(cpu.outputs));
+  }
+  {
+    const cpu = new Nando.CPU(Nando.assemble('ret').bytes, []);
+    check('ret sans call refusé', !cpu.step() && /vide/.test(cpu.error));
+  }
   for (const [i, op] of Nando.ALU_OPS.entries()) {
     check('disassemble ' + op, Nando.disassemble(0b01000000 | i) === op);
   }

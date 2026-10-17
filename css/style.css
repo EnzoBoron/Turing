@@ -239,6 +239,14 @@ table.truth tr.sep td { border-top: 2px solid var(--border); }
 .reg span { font-size: 11px; color: var(--muted); }
 .reg b { font-variant-numeric: tabular-nums; }
 .reg small { font: 10px ui-monospace, Menlo, monospace; color: var(--muted); }
+.cpu h4 small { text-transform: none; letter-spacing: 0; font-weight: 400; }
+.ram { display: grid; grid-template-columns: repeat(8, 1fr); gap: 3px; }
+.ram div { background: var(--panel-2); border: 1px solid var(--border); border-radius: 5px; padding: 1px 2px; text-align: center; display: flex; flex-direction: column; }
+.ram span { font-size: 9px; color: var(--muted); }
+.ram b { font: 12px ui-monospace, Menlo, monospace; font-variant-numeric: tabular-nums; }
+.ram div.set { border-color: var(--accent); }
+.isa-table tr.fresh td { background: color-mix(in srgb, var(--accent) 12%, transparent); }
+.new-tag { font-size: 11px; color: var(--accent); text-transform: uppercase; letter-spacing: .05em; }
 .io-list { display: flex; flex-wrap: wrap; gap: 4px; }
 .io-list span {
   min-width: 34px; text-align: center; padding: 2px 6px; border-radius: 6px;
