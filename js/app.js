@@ -146,10 +146,53 @@
 
   // ------------------------------------------------------ Écran circuit
 
+  // Légende des entrées et sorties, puis la table attendue (repliée pour ne rien souffler).
+  function circuitGuide(lvl) {
+    const pins = lvl.pins || {};
+    const list = (names) => names.map((n) => `<li><span class="pin-name">${esc(n)}</span>`
+      + `<span>${esc(pins[n] || '')}</span></li>`).join('');
+    let html = '<div class="guide">';
+    if (lvl.inputs.length) html += `<h4>Entrées</h4><ul class="pins">${list(lvl.inputs)}</ul>`;
+    html += `<h4>Sorties</h4><ul class="pins">${list(lvl.outputs)}</ul>`;
+
+    const first = lvl.tests[0];
+    const steps = first && (first.steps || (first.alts && first.alts[0]));
+    if (steps) {
+      const rows = lvl.sequential ? steps.slice(0, 8) : lvl.tests.map((t) => t.steps[0]);
+      const label = lvl.sequential ? 'Voir un exemple tick par tick' : `Voir la table attendue (${rows.length} lignes)`;
+      let table = '<div class="table-scroll"><table class="truth"><thead><tr>';
+      if (lvl.sequential) table += '<th>tick</th>';
+      lvl.inputs.forEach((n) => { table += `<th class="in">${esc(n)}</th>`; });
+      lvl.outputs.forEach((n) => { table += `<th>${esc(n)}</th>`; });
+      table += '</tr></thead><tbody>';
+      rows.forEach((r, t) => {
+        table += '<tr>' + (lvl.sequential ? `<td>${t}</td>` : '')
+          + r.in.map((v) => `<td class="in">${v}</td>`).join('')
+          + r.out.map((v) => `<td>${v}</td>`).join('') + '</tr>';
+      });
+      table += '</tbody></table></div>';
+      html += `<details class="expected"><summary>${label}</summary>${table}</details>`;
+    }
+    return html + '</div>';
+  }
+
+  // Exemple d'entrées et de sorties attendues, tiré du premier test.
+  function asmGuide(lvl) {
+    const t = lvl.tests[0];
+    const fmt = (xs) => (xs.length ? xs.slice(0, 12).join(', ') + (xs.length > 12 ? ', …' : '') : 'aucune');
+    // Entrées lues par paires : on les montre groupées, « (10, 10), (8, 11) ».
+    const groups = (xs, n) => xs.length ? Array.from({ length: Math.ceil(xs.length / n) },
+      (_, k) => '(' + xs.slice(k * n, k * n + n).join(', ') + ')').join(', ') : 'aucune';
+    const ins = lvl.group ? groups(t.inputs, lvl.group) : fmt(t.inputs);
+    return '<div class="guide"><h4>Exemple</h4><table class="mini example">'
+      + `<tr><th>Entrées</th><td>${ins}</td></tr>`
+      + `<tr><th>Sorties attendues</th><td>${fmt(t.outputs)}</td></tr></table></div>`;
+  }
+
   function openCircuit(lvl) {
     $('c-chapter').textContent = chapterOf(lvl).title;
     $('c-title').textContent = lvl.title;
-    $('c-desc').innerHTML = lvl.desc;
+    $('c-desc').innerHTML = lvl.desc + circuitGuide(lvl);
     $('c-results').classList.add('hidden');
     document.querySelector('#screen-circuit .seq-only').classList.toggle('hidden', !lvl.sequential);
 
@@ -303,7 +346,7 @@
 
   function openAsm(lvl) {
     $('a-title').textContent = lvl.title;
-    $('a-desc').innerHTML = lvl.desc;
+    $('a-desc').innerHTML = lvl.desc + asmGuide(lvl);
     $('a-isa').innerHTML = isaHtml(lvl.raw);
     $('a-results').classList.add('hidden');
     const sel = $('a-test');

@@ -122,6 +122,16 @@ async function main() {
   check('le niveau Comparateur 1 bit a 3 sorties',
     (await page.evaluate(() => window.game.editor.circuit.components.filter((c) => c.type === 'OUT').length)) === 3);
 
+  console.log('Énoncés');
+  await open('gt2');
+  const pinText = await page.textContent('#c-desc .pins');
+  check('la légende explique chaque bit', pinText.includes('A1') && pinText.includes('compte pour 2'));
+  check('la table attendue est repliée', !(await page.isVisible('#c-desc details.expected table')));
+  await page.click('#c-desc details.expected summary');
+  check('la table attendue a 16 lignes', (await page.locator('#c-desc details.expected tbody tr').count()) === 16);
+  await open('max');
+  check('un niveau d\'assemblage montre un exemple', (await page.textContent('#a-desc .example')).includes('Sorties attendues'));
+
   console.log('Fichier de sauvegarde');
   await page.click('#home-btn');
   const [download] = await Promise.all([page.waitForEvent('download'), page.click('#export-save')]);

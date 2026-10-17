@@ -68,9 +68,30 @@
 
   const num = (bits) => bits.reduce((acc, v, k) => acc + (v << k), 0);
 
+  // Légende des branchements : ce que représente chaque entrée et sortie.
+  // bitPins('A', 2) décrit A0 et A1, les bits du nombre A.
+  function bitPins(name, count, what = 'du nombre ' + name) {
+    const pins = {};
+    for (let k = 0; k < count; k++) pins[name + k] = `bit ${what} qui compte pour ${1 << k}`;
+    return pins;
+  }
+  // Sorties d'un décodeur : O0 s'allume pour n = 0, O1 pour n = 1…
+  function decoderPins(count) {
+    const pins = {};
+    for (let k = 0; k < count; k++) pins['O' + k] = `s'allume seulement quand n = ${k}`;
+    return pins;
+  }
+  const AB = { A: 'première entrée', B: 'deuxième entrée' };
+  const ABC = { A: 'première entrée', B: 'deuxième entrée', C: 'troisième entrée' };
+  const NUM3 = 'Les trois entrées forment ensemble un nombre N de 0 à 7 : N0 compte pour 1, N1 pour 2 et N2 pour 4. '
+    + 'On additionne ceux qui valent 1. Par exemple, N2 = 1, N1 = 0 et N0 = 1 donnent N = 4 + 1 = 5.';
+  const NUM2 = 'A0 et A1 forment ensemble un nombre A de 0 à 3 : A0 compte pour 1 et A1 compte pour 2. '
+    + 'Par exemple, A1 = 1 et A0 = 0 donnent A = 2. Même chose pour B avec B0 et B1.';
+
   add({
     id: 'nand', chapter: 'gates', title: 'La porte NAND',
     inputs: ['A', 'B'], outputs: ['Q'],
+    pins: { ...AB, Q: '0 seulement quand A et B valent 1 tous les deux, 1 sinon' },
     desc: `<p>Tout ordinateur peut être construit à partir d'une seule porte : <b>NAND</b> (« NON-ET »).
       Sa sortie vaut 0 uniquement quand ses deux entrées valent 1.</p>
       <p><b>Commandes :</b> clique sur une porte de la palette pour l'ajouter, glisse ses pastilles
@@ -82,6 +103,7 @@
   add({
     id: 'not', chapter: 'gates', title: 'NOT', unlock: 'NOT',
     inputs: ['A'], outputs: ['Q'],
+    pins: { A: 'l\'entrée', Q: 'l\'inverse de A' },
     desc: `<p>La porte <b>NOT</b> inverse son entrée : 0 devient 1 et 1 devient 0.</p>
       <p>Indice : que fait une porte NAND quand ses deux entrées sont identiques ?</p>
       <p><b>Astuce :</b> une même sortie peut alimenter <i>plusieurs</i> entrées. Tire simplement
@@ -91,6 +113,7 @@
   add({
     id: 'constants', chapter: 'gates', title: 'Constantes',
     inputs: ['A'], outputs: ['Un', 'Zéro'],
+    pins: { A: 'une entrée quelconque : ton circuit doit marcher qu\'elle vaille 0 ou 1', Un: 'doit toujours valoir 1', Zéro: 'doit toujours valoir 0' },
     desc: `<p>Quelle que soit la valeur de A, la sortie <b>Un</b> doit toujours valoir 1
       et la sortie <b>Zéro</b> toujours 0.</p>
       <p>Indice : « A » et « NOT A » ne peuvent jamais valoir 1 en même temps.</p>`,
@@ -99,6 +122,7 @@
   add({
     id: 'and', chapter: 'gates', title: 'AND', unlock: 'AND',
     inputs: ['A', 'B'], outputs: ['Q'],
+    pins: { ...AB, Q: '1 seulement si A et B valent 1' },
     desc: `<p>La porte <b>AND</b> (« ET ») vaut 1 seulement si A <i>et</i> B valent 1.</p>
       <p>NAND signifie « NOT AND »… il suffit donc de défaire le NOT.</p>`,
     tests: truthTable(2, ([a, c]) => [a & c]),
@@ -106,6 +130,7 @@
   add({
     id: 'and3', chapter: 'gates', title: 'AND à 3 entrées',
     inputs: ['A', 'B', 'C'], outputs: ['Q'],
+    pins: { ...ABC, Q: '1 seulement si A, B et C valent tous 1' },
     desc: `<p>Q vaut 1 seulement si <b>les trois</b> entrées valent 1.</p>
       <p>Les portes se chaînent : le résultat d'une porte peut devenir l'entrée de la suivante.</p>`,
     tests: truthTable(3, ([a, c, d]) => [a & c & d]),
@@ -113,12 +138,14 @@
   add({
     id: 'a_not_b', chapter: 'gates', title: 'A sans B',
     inputs: ['A', 'B'], outputs: ['Q'],
+    pins: { A: 'le signal à laisser passer', B: 'le veto : quand il vaut 1, il bloque A', Q: '1 seulement si A = 1 et B = 0' },
     desc: `<p>Q vaut 1 quand A vaut 1 <b>et</b> que B vaut 0. B agit comme un « veto ».</p>`,
     tests: truthTable(2, ([a, c]) => [a & (1 - c)]),
   });
   add({
     id: 'or', chapter: 'gates', title: 'OR', unlock: 'OR',
     inputs: ['A', 'B'], outputs: ['Q'],
+    pins: { ...AB, Q: '1 si au moins une des deux entrées vaut 1' },
     desc: `<p>La porte <b>OR</b> (« OU ») vaut 1 si A <i>ou</i> B (ou les deux) valent 1.</p>
       <p>Loi de De Morgan : « A ou B » est faux uniquement si « non A » et « non B » sont tous deux vrais.</p>`,
     tests: truthTable(2, ([a, c]) => [a | c]),
@@ -126,12 +153,14 @@
   add({
     id: 'or3', chapter: 'gates', title: 'OR à 3 entrées',
     inputs: ['A', 'B', 'C'], outputs: ['Q'],
+    pins: { ...ABC, Q: '1 si au moins une des trois entrées vaut 1' },
     desc: `<p>Q vaut 1 si <b>au moins une</b> des trois entrées vaut 1.</p>`,
     tests: truthTable(3, ([a, c, d]) => [a | c | d]),
   });
   add({
     id: 'implies', chapter: 'gates', title: 'Implication',
     inputs: ['A', 'B'], outputs: ['Q'],
+    pins: { A: 'la condition : « si A… »', B: 'la conséquence : « … alors B »', Q: '0 seulement quand la règle est enfreinte (A = 1 et B = 0)' },
     desc: `<p>La règle « <b>si A alors B</b> » n'est enfreinte que dans un cas : A est vrai mais B est faux.
       Q doit valoir 0 dans ce cas, et 1 dans tous les autres.</p>`,
     tests: truthTable(2, ([a, c]) => [(1 - a) | c]),
@@ -139,6 +168,7 @@
   add({
     id: 'alarm', chapter: 'gates', title: 'Alarme',
     inputs: ['Armée', 'Porte', 'Code'], outputs: ['Sirène'],
+    pins: { Armée: '1 = l\'alarme est activée', Porte: '1 = la porte est ouverte', Code: '1 = le bon code a été tapé', Sirène: '1 = la sirène sonne' },
     desc: `<p>La sirène doit sonner si l'alarme est <b>armée</b>, que la <b>porte</b> est ouverte,
       et que le bon <b>code</b> n'a <i>pas</i> été saisi.</p>`,
     tests: truthTable(3, ([arm, door, code]) => [arm & door & (1 - code)]),
@@ -146,18 +176,21 @@
   add({
     id: 'nor', chapter: 'gates', title: 'NOR', unlock: 'NOR',
     inputs: ['A', 'B'], outputs: ['Q'],
+    pins: { ...AB, Q: '1 seulement si A et B valent 0 tous les deux' },
     desc: `<p>La porte <b>NOR</b> vaut 1 seulement si aucune entrée ne vaut 1. C'est l'inverse de OR.</p>`,
     tests: truthTable(2, ([a, c]) => [1 - (a | c)]),
   });
   add({
     id: 'none3', chapter: 'gates', title: 'Silence total',
     inputs: ['A', 'B', 'C'], outputs: ['Q'],
+    pins: { ...ABC, Q: '1 seulement si A, B et C valent tous 0' },
     desc: `<p>Q vaut 1 seulement si <b>aucune</b> des trois entrées ne vaut 1.</p>`,
     tests: truthTable(3, ([a, c, d]) => [1 - (a | c | d)]),
   });
   add({
     id: 'xor', chapter: 'gates', title: 'XOR', unlock: 'XOR',
     inputs: ['A', 'B'], outputs: ['Q'],
+    pins: { ...AB, Q: '1 si A et B sont différents' },
     desc: `<p>La porte <b>XOR</b> (« OU exclusif ») vaut 1 si les entrées sont <i>différentes</i>.</p>
       <p>Défi : il est possible de la construire avec seulement 4 portes NAND.</p>`,
     tests: truthTable(2, ([a, c]) => [a ^ c]),
@@ -165,6 +198,7 @@
   add({
     id: 'parity3', chapter: 'gates', title: 'Parité',
     inputs: ['A', 'B', 'C'], outputs: ['Impair'],
+    pins: { ...ABC, Impair: '1 si le nombre d\'entrées à 1 est impair (une ou trois)' },
     desc: `<p><b>Impair</b> vaut 1 si le nombre d'entrées à 1 est impair (1 ou 3).</p>
       <p>Ce circuit sert à détecter des erreurs de transmission : un bit inversé change la parité.</p>`,
     tests: truthTable(3, ([a, c, d]) => [a ^ c ^ d]),
@@ -172,32 +206,38 @@
   add({
     id: 'exactly_one', chapter: 'gates', title: 'Exactement un',
     inputs: ['A', 'B', 'C'], outputs: ['Q'],
+    pins: { ...ABC, Q: '1 si une seule des trois entrées vaut 1' },
     desc: `<p>Q vaut 1 si <b>exactement une</b> entrée vaut 1 : ni zéro, ni deux, ni trois.</p>`,
     tests: truthTable(3, ([a, c, d]) => [a + c + d === 1 ? 1 : 0]),
   });
   add({
     id: 'xnor', chapter: 'gates', title: 'XNOR', unlock: 'XNOR',
     inputs: ['A', 'B'], outputs: ['Q'],
+    pins: { ...AB, Q: '1 si A et B sont identiques' },
     desc: `<p>La porte <b>XNOR</b> vaut 1 si les entrées sont <i>identiques</i>.</p>`,
     tests: truthTable(2, ([a, c]) => [1 - (a ^ c)]),
   });
   add({
     id: 'all_equal', chapter: 'gates', title: 'Unanimité',
     inputs: ['A', 'B', 'C'], outputs: ['Q'],
+    pins: { ...ABC, Q: '1 si A, B et C ont tous la même valeur' },
     desc: `<p>Q vaut 1 si les trois entrées ont <b>la même valeur</b> (toutes à 0 ou toutes à 1).</p>`,
     tests: truthTable(3, ([a, c, d]) => [a === c && c === d ? 1 : 0]),
   });
   add({
     id: 'eq2', chapter: 'gates', title: 'Égalité 2 bits',
     inputs: ['A0', 'A1', 'B0', 'B1'], outputs: ['Égal'],
-    desc: `<p>Deux nombres de 2 bits : A = A0 + 2·A1 et B = B0 + 2·B1 (de 0 à 3).
-      <b>Égal</b> vaut 1 si A = B.</p>
+    pins: { ...bitPins('A', 2), ...bitPins('B', 2), Égal: '1 si le nombre A est égal au nombre B' },
+    desc: `<p>Cette fois, les entrées représentent <b>deux nombres</b>, A et B, écrits chacun avec 2 bits.</p>
+      <p>${NUM2}</p>
+      <p><b>Égal</b> vaut 1 si les deux nombres sont égaux.</p>
       <p>Deux nombres sont égaux quand chacun de leurs bits est égal.</p>`,
     tests: truthTable(4, ([a0, a1, b0, b1]) => [a0 === b0 && a1 === b1 ? 1 : 0]),
   });
   add({
     id: 'cmp1', chapter: 'gates', title: 'Comparateur 1 bit',
     inputs: ['A', 'B'], outputs: ['Sup', 'Égal', 'Inf'],
+    pins: { ...AB, Sup: 'Supérieur : 1 si A est plus grand que B', Égal: '1 si A et B sont égaux', Inf: 'Inférieur : 1 si A est plus petit que B' },
     desc: `<p>Compare A et B : <b>Sup</b> vaut 1 si A &gt; B, <b>Égal</b> si A = B, <b>Inf</b> si A &lt; B.
       Une seule sortie est allumée à la fois.</p>`,
     tests: truthTable(2, ([a, c]) => [a > c ? 1 : 0, a === c ? 1 : 0, a < c ? 1 : 0]),
@@ -205,32 +245,42 @@
   add({
     id: 'gt2', chapter: 'gates', title: 'Plus grand 2 bits',
     inputs: ['A0', 'A1', 'B0', 'B1'], outputs: ['Sup'],
-    desc: `<p>A = A0 + 2·A1 et B = B0 + 2·B1. <b>Sup</b> vaut 1 si A &gt; B.</p>
+    pins: { ...bitPins('A', 2), ...bitPins('B', 2), Sup: 'Supérieur : 1 si le nombre A est plus grand que le nombre B' },
+    desc: `<p>Comme pour l'égalité, les entrées forment deux nombres A et B de 0 à 3.</p>
+      <p>${NUM2}</p>
+      <p><b>Sup</b> vaut 1 si A est <b>strictement plus grand</b> que B (si A = B, Sup vaut 0).</p>
       <p>Indice : compare d'abord les bits de poids fort. S'ils sont égaux, ce sont les bits de poids faible qui décident.</p>`,
     tests: truthTable(4, ([a0, a1, b0, b1]) => [a0 + 2 * a1 > b0 + 2 * b1 ? 1 : 0]),
   });
   add({
     id: 'ge5', chapter: 'gates', title: 'Au moins 5',
     inputs: ['N0', 'N1', 'N2'], outputs: ['Q'],
-    desc: `<p>Les entrées forment un nombre N = N0 + 2·N1 + 4·N2 (de 0 à 7). Q vaut 1 si <b>N ≥ 5</b>.</p>`,
+    pins: { ...bitPins('N', 3), Q: '1 si N vaut 5, 6 ou 7' },
+    desc: `<p>${NUM3}</p>
+      <p>Q vaut 1 si <b>N est au moins égal à 5</b>, c'est-à-dire si N vaut 5, 6 ou 7.</p>`,
     tests: truthTable(3, (bits) => [num(bits) >= 5 ? 1 : 0]),
   });
   add({
     id: 'prime', chapter: 'gates', title: 'Nombre premier',
     inputs: ['N0', 'N1', 'N2'], outputs: ['Premier'],
-    desc: `<p>N = N0 + 2·N1 + 4·N2. <b>Premier</b> vaut 1 si N est un nombre premier : 2, 3, 5 ou 7.</p>
+    pins: { ...bitPins('N', 3), Premier: '1 si N vaut 2, 3, 5 ou 7' },
+    desc: `<p>${NUM3}</p>
+      <p><b>Premier</b> vaut 1 si N est un nombre premier, c'est-à-dire 2, 3, 5 ou 7.</p>
       <p>Indice : écris les quatre nombres en binaire et cherche ce qu'ils ont en commun.</p>`,
     tests: truthTable(3, (bits) => [[2, 3, 5, 7].includes(num(bits)) ? 1 : 0]),
   });
   add({
     id: 'mult3', chapter: 'gates', title: 'Multiple de 3',
     inputs: ['N0', 'N1', 'N2'], outputs: ['Q'],
-    desc: `<p>N = N0 + 2·N1 + 4·N2. Q vaut 1 si N est un <b>multiple de 3</b> : 0, 3 ou 6.</p>`,
+    pins: { ...bitPins('N', 3), Q: '1 si N vaut 0, 3 ou 6' },
+    desc: `<p>${NUM3}</p>
+      <p>Q vaut 1 si N est un <b>multiple de 3</b>, c'est-à-dire 0, 3 ou 6.</p>`,
     tests: truthTable(3, (bits) => [num(bits) % 3 === 0 ? 1 : 0]),
   });
   add({
     id: 'maj', chapter: 'gates', title: 'Majorité',
     inputs: ['A', 'B', 'C'], outputs: ['Q'],
+    pins: { ...ABC, Q: '1 si au moins deux des trois entrées valent 1' },
     desc: `<p>Trois entrées votent. La sortie vaut 1 si <b>au moins deux</b> entrées valent 1.</p>
       <p>Ce circuit reviendra bientôt sous un autre nom…</p>`,
     tests: truthTable(3, ([a, c, d]) => [a + c + d >= 2 ? 1 : 0]),
@@ -241,34 +291,45 @@
   add({
     id: 'half_add', chapter: 'components', title: 'Demi-additionneur', unlock: 'HALF_ADD',
     inputs: ['A', 'B'], outputs: ['S', 'C'],
-    desc: `<p>Additionne deux bits. En binaire, 1 + 1 = 10 : la somme <b>S</b> est le chiffre des unités
-      et la retenue <b>C</b> celui des deuxaines.</p>`,
+    pins: { A: 'premier bit à additionner', B: 'deuxième bit à additionner', S: 'Somme : le chiffre de droite du résultat (celui qu\'on « pose »)', C: 'Carry (retenue) : 1 quand le résultat dépasse 1 (« je retiens 1 »)' },
+    desc: `<p>Additionne deux bits A et B, comme une addition posée à l'école mais en binaire.</p>
+      <p>Le résultat va de 0 à 2, il faut donc <b>deux</b> sorties pour l'écrire : <b>S</b>, le chiffre qu'on pose,
+      et <b>C</b>, la retenue. Par exemple 1 + 1 = 2, qui s'écrit <code>10</code> en binaire : on pose S = 0
+      et on retient C = 1.</p>`,
     tests: truthTable(2, ([a, c]) => [a ^ c, a & c]),
   });
   add({
     id: 'full_add', chapter: 'components', title: 'Additionneur complet', unlock: 'FULL_ADD',
     inputs: ['A', 'B', 'Ci'], outputs: ['S', 'Co'],
-    desc: `<p>Additionne trois bits : A, B et la retenue entrante <b>Ci</b>. Le résultat (de 0 à 3) s'écrit
-      sur deux bits : <b>S</b> et la retenue sortante <b>Co</b>.</p>
+    pins: { A: 'premier bit à additionner', B: 'deuxième bit à additionner', Ci: 'Carry in : la retenue qui arrive de la colonne de droite', S: 'Somme : le chiffre de droite de A + B + Ci', Co: 'Carry out : la retenue à passer à la colonne de gauche' },
+    desc: `<p>Dans une addition posée, chaque colonne additionne <b>trois</b> chiffres : ceux de A et B,
+      plus la retenue venue de la colonne de droite (<b>Ci</b>).</p>
+      <p>Le résultat va de 0 à 3 et s'écrit avec deux sorties : <b>S</b>, le chiffre qu'on pose, et <b>Co</b>,
+      la retenue pour la colonne de gauche. Par exemple 1 + 1 + 1 = 3, qui s'écrit <code>11</code> : S = 1 et Co = 1.</p>
       <p>En chaînant ces additionneurs, on additionne des nombres de n'importe quelle taille.</p>`,
     tests: truthTable(3, ([a, c, d]) => [(a + c + d) & 1, (a + c + d) >> 1]),
   });
   add({
     id: 'mux', chapter: 'components', title: 'Multiplexeur', unlock: 'MUX',
     inputs: ['A', 'B', 'S'], outputs: ['Q'],
+    pins: { A: 'la valeur à recopier quand S = 0', B: 'la valeur à recopier quand S = 1', S: 'Sélecteur : la position de l\'aiguillage', Q: 'recopie A ou B selon S' },
     desc: `<p>Un <b>multiplexeur</b> est un aiguillage : si S = 0, la sortie recopie A ; si S = 1, elle recopie B.</p>`,
     tests: truthTable(3, ([a, c, s]) => [s ? c : a]),
   });
   add({
     id: 'dec2', chapter: 'components', title: 'Décodeur 2 bits', unlock: 'DEC2',
     inputs: ['A0', 'A1'], outputs: ['O0', 'O1', 'O2', 'O3'],
-    desc: `<p>Les entrées forment un nombre n = A0 + 2·A1 (de 0 à 3). Allume <b>uniquement</b> la sortie On.</p>
+    pins: { ...bitPins('A', 2, 'du numéro n'), ...decoderPins(4) },
+    desc: `<p>Les entrées forment un numéro n de 0 à 3 : A0 compte pour 1 et A1 compte pour 2.</p>
+      <p>Il y a une sortie par numéro, O0 à O3. Allume <b>seulement</b> celle qui porte le numéro n, toutes les autres
+      restent à 0. Par exemple, A1 = 1 et A0 = 0 donnent n = 2 : seule O2 s'allume.</p>
       <p>Les décodeurs servent à choisir quel registre ou quelle opération activer.</p>`,
     tests: truthTable(2, ([a0, a1]) => [0, 1, 2, 3].map((i) => (i === a0 + 2 * a1 ? 1 : 0))),
   });
   add({
     id: 'osc', chapter: 'components', title: 'Oscillateur', unlock: 'DELAY', give: ['DELAY'],
     inputs: [], outputs: ['Q'], sequential: true,
+    pins: { Q: 'doit changer de valeur à chaque tick : 0, 1, 0, 1…' },
     desc: `<p>Voici un nouveau composant : le <b>DÉLAI</b>. Sa sortie est la valeur qu'avait son entrée
       au <i>tick</i> d'horloge précédent (0 au départ).</p>
       <p>Grâce à lui, un circuit peut enfin <b>se souvenir</b>. Il permet aussi des boucles, interdites sinon.</p>
@@ -281,17 +342,23 @@
   add({
     id: 'mem', chapter: 'components', title: 'Bit de mémoire', unlock: 'MEM',
     inputs: ['Sauv', 'Val'], outputs: ['Q'], sequential: true,
+    pins: { Sauv: 'Sauvegarder : 1 = enregistrer Val à ce tick', Val: 'la valeur à enregistrer (0 ou 1)', Q: 'la valeur actuellement mémorisée' },
     desc: `<p>Construis une cellule mémoire d'un bit. Q affiche la valeur mémorisée.</p>
       <p>Quand <b>Sauv</b> = 1, la valeur <b>Val</b> est enregistrée et apparaît sur Q au tick suivant.
-      Sinon, la valeur mémorisée est conservée indéfiniment.</p>`,
+      Quand Sauv = 0, la mémoire ignore Val et garde sa valeur, aussi longtemps qu'il le faut.</p>
+      <p>Exemple : Sauv = 1 et Val = 1 au tick 0 ; Q passe à 1 au tick 1 et y reste, même si Val repasse à 0,
+      tant que Sauv reste à 0.</p>`,
     tests: [1, 2].map((seed) =>
       sequence((st, [save, v]) => [[st], save ? v : st], 0, randomBits(seed * 7, 12, 2))),
   });
   add({
     id: 'counter', chapter: 'components', title: 'Compteur 2 bits',
     inputs: ['Inc'], outputs: ['B0', 'B1'], sequential: true,
-    desc: `<p>Compte le nombre de ticks où <b>Inc</b> valait 1, modulo 4. La valeur s'affiche en binaire :
-      n = B0 + 2·B1. Comme pour la mémoire, le compteur affiche sa valeur <i>avant</i> l'incrément du tick courant.</p>`,
+    pins: { Inc: 'Incrémenter : 1 = ajouter 1 au compteur à ce tick', ...bitPins('B', 2, 'du compteur') },
+    desc: `<p>Compte combien de fois <b>Inc</b> a valu 1. Le compteur part de 0 et s'affiche en binaire sur deux
+      sorties : B0 compte pour 1 et B1 pour 2.</p>
+      <p>Après 3, il repart à 0 (0, 1, 2, 3, 0, 1…). Comme pour la mémoire, un Inc = 1 n'apparaît sur les sorties
+      qu'au tick <i>suivant</i>.</p>`,
     tests: [3, 4].map((seed) =>
       sequence((st, [inc]) => [[st & 1, st >> 1], (st + inc) & 3], 0, randomBits(seed * 11, 14, 1))),
   });
@@ -302,8 +369,10 @@
   add({
     id: 'alu1', chapter: 'architecture', title: 'ALU 1 bit',
     inputs: ['Op0', 'Op1', 'A', 'B', 'Ci'], outputs: ['R', 'Co'],
+    pins: { ...bitPins('Op', 2, 'du code d\'opération op'), A: 'premier bit à combiner', B: 'deuxième bit à combiner', Ci: 'Carry in : retenue entrante, utilisée seulement par l\'addition', R: 'Résultat de l\'opération choisie', Co: 'Carry out : retenue sortante de l\'addition (0 pour les autres opérations)' },
     desc: `<p>L'<b>unité arithmétique et logique</b> est le cœur calculatoire du processeur.
-      Le code d'opération op = Op0 + 2·Op1 choisit le calcul :</p>
+      Les entrées Op0 et Op1 forment un code d'opération op de 0 à 3 (Op0 compte pour 1, Op1 pour 2),
+      qui choisit le calcul à faire sur A et B :</p>
       <table class="mini"><tr><th>op</th><th>R</th><th>Co</th></tr>
       <tr><td>0</td><td>A AND B</td><td>0</td></tr>
       <tr><td>1</td><td>A OR B</td><td>0</td></tr>
@@ -322,8 +391,10 @@
   add({
     id: 'cond', chapter: 'architecture', title: 'Unité de condition',
     inputs: ['C0', 'C1', 'C2', 'Z', 'N'], outputs: ['Saut'],
+    pins: { ...bitPins('C', 3, 'du code de condition c'), Z: 'Zéro : vaut 1 quand R3 = 0', N: 'Négatif : vaut 1 quand R3 < 0', Saut: '1 = le processeur doit sauter' },
     desc: `<p>Pour décider d'un saut, le processeur regarde le registre R3 à travers deux signaux :
-      <b>Z</b> (R3 = 0) et <b>N</b> (R3 &lt; 0). Le code c = C0 + 2·C1 + 4·C2 donne la condition :</p>
+      <b>Z</b> vaut 1 si R3 = 0, et <b>N</b> vaut 1 si R3 est négatif. Les entrées C0, C1 et C2 forment
+      un code c de 0 à 7 (C0 compte pour 1, C1 pour 2, C2 pour 4), qui dit quelle condition tester :</p>
       <table class="mini"><tr><th>c</th><th>saut si</th><th>c</th><th>saut si</th></tr>
       <tr><td>0</td><td>jamais</td><td>4</td><td>toujours</td></tr>
       <tr><td>1</td><td>= 0</td><td>5</td><td>≠ 0</td></tr>
@@ -338,13 +409,17 @@
   add({
     id: 'dec3', chapter: 'architecture', title: 'Décodeur 3 bits', unlock: 'DEC3',
     inputs: ['A0', 'A1', 'A2'], outputs: ['O0', 'O1', 'O2', 'O3', 'O4', 'O5', 'O6', 'O7'],
+    pins: { ...bitPins('A', 3, 'du numéro n'), ...decoderPins(8) },
     desc: `<p>Même principe que le décodeur 2 bits, mais pour 8 sorties. Il sélectionnera
-      les registres source et destination des instructions de copie.</p>`,
+      les registres source et destination des instructions de copie.</p>
+      <p>Les entrées forment un numéro n de 0 à 7 (A0 compte pour 1, A1 pour 2, A2 pour 4) : seule la sortie
+      qui porte ce numéro s'allume.</p>`,
     tests: truthTable(3, ([a0, a1, a2]) => [0, 1, 2, 3, 4, 5, 6, 7].map((i) => (i === a0 + 2 * a1 + 4 * a2 ? 1 : 0))),
   });
   add({
     id: 'reg', chapter: 'architecture', title: 'Registre',
     inputs: ['Charger', 'Lire', 'Val'], outputs: ['Q'], sequential: true,
+    pins: { Charger: '1 = enregistrer Val à ce tick', Lire: '1 = montrer la valeur mémorisée sur Q', Val: 'la valeur à enregistrer (0 ou 1)', Q: 'la valeur mémorisée si Lire = 1, sinon 0' },
     desc: `<p>Un <b>registre</b> est une mémoire branchée sur un bus partagé par tous les autres registres.</p>
       <p>Quand <b>Charger</b> = 1, Val est mémorisée (visible au tick suivant). Q ne montre la valeur
       mémorisée que lorsque <b>Lire</b> = 1 ; sinon Q vaut 0 pour ne pas brouiller le bus.</p>`,
@@ -354,10 +429,13 @@
   add({
     id: 'pc', chapter: 'architecture', title: 'Compteur de programme',
     inputs: ['Écrire', 'V0', 'V1'], outputs: ['P0', 'P1'], sequential: true,
+    pins: { Écrire: '1 = sauter : la prochaine adresse sera V au lieu de P + 1', ...bitPins('V', 2, 'de l\'adresse de saut V'), ...bitPins('P', 2, 'de l\'adresse actuelle P') },
     desc: `<p>Le <b>compteur de programme</b> (PC) indique l'adresse de l'instruction à exécuter.
       À chaque tick il passe à l'instruction suivante (+1, modulo 4 ici)… sauf lors d'un saut.</p>
-      <p>Si <b>Écrire</b> = 1, la prochaine valeur est V = V0 + 2·V1 au lieu de P + 1.
-      P = P0 + 2·P1 affiche la valeur courante.</p>`,
+      <p>Les sorties P0 et P1 affichent l'adresse actuelle P (P0 compte pour 1, P1 pour 2). Normalement, au tick
+      suivant, P devient P + 1 (et après 3, on revient à 0).</p>
+      <p>Mais si <b>Écrire</b> = 1, c'est un saut : au tick suivant, P prend la valeur V donnée par V0 et V1
+      (V0 compte pour 1, V1 pour 2).</p>`,
     tests: [7, 8].map((seed) => {
       const r = rng(seed);
       const ins = Array.from({ length: 14 }, () => [r() < 0.3 ? 1 : 0, r() < 0.5 ? 1 : 0, r() < 0.5 ? 1 : 0]);
@@ -406,7 +484,9 @@
   });
   addAsm({
     id: 'double', chapter: 'assembly', title: 'Le double',
-    desc: `<p>Pour chaque entrée x, écris 2·x sur la sortie (les valeurs sont prises modulo 256).</p>`,
+    desc: `<p>Pour chaque entrée x, écris son <b>double</b> (2 × x) sur la sortie.</p>
+      <p>Les registres ne contiennent que des nombres de 0 à 255 : si le double dépasse 255, il « refait le tour »
+      (on lui retire 256). Le processeur le fait tout seul, par exemple 2 × 200 = 400 devient 144.</p>`,
     tests: asmTests(3, (r) => {
       const xs = Array.from({ length: 6 }, () => randInt(r, 0, 255));
       return { inputs: xs, outputs: xs.map((x) => (2 * x) & 255) };
@@ -433,7 +513,7 @@
     }),
   });
   addAsm({
-    id: 'max', chapter: 'assembly', title: 'Le plus grand',
+    id: 'max', chapter: 'assembly', group: 2, title: 'Le plus grand',
     desc: `<p>Les entrées arrivent par paires (a, b) avec des valeurs entre 0 et 100.
       Pour chaque paire, écris la plus grande des deux.</p>
       <p>Indice : le signe de a − b te dit laquelle est la plus grande. Les registres R4 et R5 sont libres.</p>`,
@@ -450,7 +530,7 @@
     }),
   });
   addAsm({
-    id: 'mul', chapter: 'assembly', title: 'Multiplication',
+    id: 'mul', chapter: 'assembly', group: 2, title: 'Multiplication',
     desc: `<p>Le processeur ne sait pas multiplier… mais il sait additionner et boucler.</p>
       <p>Les entrées arrivent par paires (a, b), entre 0 et 12. Écris a × b.</p>`,
     tests: asmTests(3, (r) => {

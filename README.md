@@ -88,8 +88,12 @@ npm run test:ui
 
 Ajoute une entrée dans `js/levels.js` :
 
-- **circuit** : `inputs`, `outputs`, `tests` (via `truthTable` ou `sequence`), et optionnellement
-  `unlock` (composant débloqué, à définir dans `js/components.js`) ;
-- **asm** : `tests` sous forme de `{ inputs: [...], outputs: [...] }`.
+- **circuit** : `inputs`, `outputs`, `tests` (via `truthTable` ou `sequence`), `pins` (une phrase
+  par entrée et par sortie, affichée sous l'énoncé ; `bitPins('A', 2)` décrit les bits d'un nombre),
+  et optionnellement `unlock` (composant débloqué, à définir dans `js/components.js`) ;
+- **asm** : `tests` sous forme de `{ inputs: [...], outputs: [...] }`, et `group: 2` si les entrées
+  se lisent par paires (l'exemple de l'énoncé les affiche alors groupées).
+
+La table attendue (repliée) et l'exemple d'entrées et de sorties sont générés à partir des tests.
 
 Pense à ajouter une solution de référence dans `tests/run.js`.
