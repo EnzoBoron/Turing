@@ -168,6 +168,11 @@ table.mini.example th { white-space: nowrap; width: 1%; }
 .expected { margin-top: 10px; font-size: 14px; }
 .expected summary { cursor: pointer; color: var(--accent); font-weight: 600; }
 .expected .table-scroll { margin-top: 6px; overflow-x: auto; }
+.hint p { margin: 6px 0 0; padding: 8px 10px; background: var(--panel-2); border-radius: 6px; }
+.desc ul { margin: 0 0 10px; padding-left: 20px; }
+.desc li { margin: 2px 0; }
+.desc .pins { padding-left: 0; }
+pre.addition { font: 13px/1.35 ui-monospace, Menlo, Consolas, monospace; background: var(--panel-2); border: 1px solid var(--border); border-radius: 6px; padding: 6px 10px; margin: 0 0 10px; overflow-x: auto; }
 
 .workspace { display: flex; flex-direction: column; min-width: 0; min-height: 0; }
 .toolbar { display: flex; align-items: center; gap: 8px; padding: 8px 12px; background: var(--panel); border-bottom: 1px solid var(--border); flex-wrap: wrap; }

@@ -129,6 +129,8 @@ async function main() {
   check('la table attendue est repliée', !(await page.isVisible('#c-desc details.expected table')));
   await page.click('#c-desc details.expected summary');
   check('la table attendue a 16 lignes', (await page.locator('#c-desc details.expected tbody tr').count()) === 16);
+  check('l\'indice est replié', (await page.locator('#c-desc details.hint').count()) === 1
+    && !(await page.isVisible('#c-desc details.hint p')));
   await open('max');
   check('un niveau d\'assemblage montre un exemple', (await page.textContent('#a-desc .example')).includes('Sorties attendues'));
 

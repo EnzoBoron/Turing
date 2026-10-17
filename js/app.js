@@ -146,6 +146,11 @@
 
   // ------------------------------------------------------ Écran circuit
 
+  // Indice facultatif, replié : on ne le voit que si on le demande.
+  function hintHtml(lvl) {
+    return lvl.hint ? `<details class="expected hint"><summary>Besoin d'un indice ?</summary><p>${esc(lvl.hint)}</p></details>` : '';
+  }
+
   // Légende des entrées et sorties, puis la table attendue (repliée pour ne rien souffler).
   function circuitGuide(lvl) {
     const pins = lvl.pins || {};
@@ -173,7 +178,7 @@
       table += '</tbody></table></div>';
       html += `<details class="expected"><summary>${label}</summary>${table}</details>`;
     }
-    return html + '</div>';
+    return html + hintHtml(lvl) + '</div>';
   }
 
   // Exemple d'entrées et de sorties attendues, tiré du premier test.
@@ -186,7 +191,7 @@
     const ins = lvl.group ? groups(t.inputs, lvl.group) : fmt(t.inputs);
     return '<div class="guide"><h4>Exemple</h4><table class="mini example">'
       + `<tr><th>Entrées</th><td>${ins}</td></tr>`
-      + `<tr><th>Sorties attendues</th><td>${fmt(t.outputs)}</td></tr></table></div>`;
+      + `<tr><th>Sorties attendues</th><td>${fmt(t.outputs)}</td></tr></table>${hintHtml(lvl)}</div>`;
   }
 
   function openCircuit(lvl) {
