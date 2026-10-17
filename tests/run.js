@@ -237,6 +237,9 @@ console.log('Assembleur et CPU');
   check('le testeur détecte un programme faux',
     !Nando.runTest(Nando.assemble(WRONG_MUL).bytes, LEVELS.find((l) => l.id === 'mul').tests[0], 20000).ok);
   check('condition signée', Nando.condition(Nando.CONDS.jlt, 200) && !Nando.condition(Nando.CONDS.jgt, 200));
+  check('binaire invalide refusé', Nando.assemble('0b005', { raw: true }).errors.length === 1);
+  check('octet trop grand refusé', Nando.assemble('300', { raw: true }).errors.length === 1);
+  check('octet négatif accepté', Nando.assemble('-1', { raw: true }).bytes[0] === 255);
   for (const [i, op] of Nando.ALU_OPS.entries()) {
     check('disassemble ' + op, Nando.disassemble(0b01000000 | i) === op);
   }

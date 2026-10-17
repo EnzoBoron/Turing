@@ -38,7 +38,9 @@
 
   // ---------------------------------------------------------------- Assembleur
 
-  const TOKEN_RE = /\s*(0b[01_]+|0x[0-9a-f]+|\d+|[a-z_][a-z0-9_]*|\+|-|\|)/iy;
+  // Un nombre est lu d'un seul bloc (« 0b005 » est un seul jeton, refusé ensuite)
+  // pour ne pas le couper silencieusement en deux nombres.
+  const TOKEN_RE = /\s*(\d\w*|[a-z_][a-z0-9_]*|\+|-|\|)/iy;
 
   function tokenize(text) {
     const out = [];
@@ -56,11 +58,14 @@
   }
 
   function parseNumber(tok) {
+    if (!/^\d/.test(tok)) return null;
     const t = tok.toLowerCase().replace(/_/g, '');
-    if (t.startsWith('0b')) return parseInt(t.slice(2), 2);
-    if (t.startsWith('0x')) return parseInt(t.slice(2), 16);
+    if (/^0b[01]+$/.test(t)) return parseInt(t.slice(2), 2);
+    if (/^0x[0-9a-f]+$/.test(t)) return parseInt(t.slice(2), 16);
     if (/^\d+$/.test(t)) return parseInt(t, 10);
-    return null;
+    if (t.startsWith('0b')) throw new Error('Nombre binaire invalide : « ' + tok + ' » (seulement des 0 et des 1 après 0b)');
+    if (t.startsWith('0x')) throw new Error('Nombre hexadécimal invalide : « ' + tok + ' »');
+    throw new Error('Nombre invalide : « ' + tok + ' »');
   }
 
   // Évalue une expression : nombres, constantes et étiquettes combinés par
@@ -107,7 +112,11 @@
   function encodeLine(tokens, symbols, raw) {
     const head = tokens[0].toLowerCase();
     const rest = tokens.slice(1);
-    if (raw || !isMnemonic(head)) return [evalExpr(tokens, symbols) & 255];
+    if (raw || !isMnemonic(head)) {
+      const v = evalExpr(tokens, symbols);
+      if (v < -128 || v > 255) throw new Error('Un octet vaut de 0 à 255 (reçu ' + v + ')');
+      return [v & 255];
+    }
 
     if (head === 'imm') {
       const v = evalExpr(rest, symbols);
