@@ -317,21 +317,20 @@
   }
 
   // Le presse-papiers moderne n'existe qu'en contexte sécurisé (https ou localhost) :
-  // ailleurs, on passe par une zone de texte temporaire.
+  // ailleurs, on copie la sélection de la zone de texte du schéma.
   function copyText(text) {
-    if (navigator.clipboard && window.isSecureContext) return navigator.clipboard.writeText(text);
-    return new Promise((resolve, reject) => {
-      const area = document.createElement('textarea');
-      area.value = text;
-      area.style.position = 'fixed';
-      area.style.opacity = '0';
-      document.body.appendChild(area);
-      area.select();
-      let ok = false;
-      try { ok = document.execCommand('copy'); } catch (e) { ok = false; }
-      area.remove();
-      (ok ? resolve : reject)();
-    });
+    if (navigator.clipboard && window.isSecureContext) {
+      return navigator.clipboard.writeText(text).catch(() => copySelection());
+    }
+    return copySelection();
+  }
+  function copySelection() {
+    const area = $('copy-text');
+    area.focus();
+    area.select();
+    let ok = false;
+    try { ok = document.execCommand('copy'); } catch (e) { ok = false; }
+    return ok ? Promise.resolve() : Promise.reject(new Error('copie refusée'));
   }
 
   let toastTimer = null;
@@ -378,13 +377,28 @@
   };
   $('c-tick').onclick = () => editor.tick();
   $('c-reset-state').onclick = () => editor.resetState();
+  // Le texte reste affiché : si le navigateur refuse la copie, on peut toujours le sélectionner.
   $('c-copy').onclick = () => {
-    const text = describeCircuit(current, editor.circuit);
-    copyText(text).then(
-      () => showToast('Schéma copié : colle-le où tu veux avec Ctrl+V.'),
-      () => window.prompt('Copie le schéma ci-dessous :', text),
-    );
+    $('copy-text').value = describeCircuit(current, editor.circuit);
+    $('copy-msg').textContent = 'Copie-le, puis colle-le où tu veux avec Ctrl+V.';
+    $('copy-msg').className = 'copy-msg';
+    $('copy-modal').classList.remove('hidden');
+    $('copy-do').focus();
   };
+  $('copy-do').onclick = () => {
+    const area = $('copy-text');
+    copyText(area.value).then(
+      () => {
+        $('copy-msg').textContent = 'Copié ✓ Colle-le où tu veux avec Ctrl+V.';
+        $('copy-msg').className = 'copy-msg good';
+      },
+      () => {
+        $('copy-msg').textContent = 'Ton navigateur bloque la copie : le texte est sélectionné, fais Ctrl+C.';
+        $('copy-msg').className = 'copy-msg bad';
+      },
+    ).finally(() => { area.focus(); area.select(); });
+  };
+  $('copy-close').onclick = () => $('copy-modal').classList.add('hidden');
   $('c-fit').onclick = () => editor.fitView();
   $('c-delete').onclick = () => editor.deleteSelection();
   $('c-clear').onclick = () => {
@@ -771,6 +785,7 @@
   };
   document.addEventListener('keydown', (e) => {
     if (e.key === 'Escape' && !$('modal').classList.contains('hidden')) hideModal();
+    if (e.key === 'Escape') $('copy-modal').classList.add('hidden');
   });
 
   // Accès pour le débogage depuis la console du navigateur.

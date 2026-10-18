@@ -207,15 +207,28 @@ async function main() {
   check('le brouillon est retrouvé', (await page.inputValue('#c-notes')) === 'A B | Q\n0 0 | 0');
 
   console.log('Copier le schéma');
+  await page.click('#c-copy');
+  const shown = await page.inputValue('#copy-text');
+  check('le schéma s\'affiche en texte', await page.isVisible('#copy-modal') && shown.startsWith('Circuit « ') && /NAND1 = NAND\(/.test(shown), shown);
   await page.evaluate(() => {
     window.copied = null;
-    Object.defineProperty(navigator, 'clipboard', { value: { writeText: async (t) => { window.copied = t; } } });
+    Object.defineProperty(navigator, 'clipboard', { configurable: true, value: { writeText: async (t) => { window.copied = t; } } });
   });
-  await page.click('#c-copy');
-  await page.waitForFunction(() => window.copied !== null);
-  const copied = await page.evaluate(() => window.copied);
-  check('le schéma copié décrit le circuit', copied.startsWith('Circuit « ') && /NAND1 = NAND\(/.test(copied), copied);
-  check('un message confirme la copie', await page.isVisible('#c-toast'));
+  await page.click('#copy-do');
+  await page.waitForSelector('#copy-msg.good');
+  check('le bouton Copier copie ce texte', (await page.evaluate(() => window.copied)) === shown);
+  await page.evaluate(() => {
+    Object.defineProperty(navigator, 'clipboard', { configurable: true, value: { writeText: async () => { throw new Error('refus'); } } });
+    document.execCommand = () => false;
+  });
+  await page.click('#copy-do');
+  await page.waitForSelector('#copy-msg.bad');
+  check('si la copie est refusée, le texte reste sélectionné', await page.evaluate(() => {
+    const a = document.getElementById('copy-text');
+    return document.activeElement === a && a.selectionStart === 0 && a.selectionEnd === a.value.length;
+  }));
+  await page.keyboard.press('Escape');
+  check('Échap ferme la fenêtre du schéma', !(await page.isVisible('#copy-modal')));
 
   console.log('Fichier de sauvegarde');
   await page.click('#home-btn');

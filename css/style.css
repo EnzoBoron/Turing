@@ -307,6 +307,11 @@ body.drawing.erasing .draw-layer { cursor: cell; }
 .modal-box { background: var(--panel); border-radius: 16px; padding: 24px; max-width: 440px; width: 100%; text-align: center; box-shadow: var(--shadow); border: 1px solid var(--border); }
 .modal-icon { font-size: 40px; color: var(--accent); line-height: 1; }
 .modal-box h2 { margin: 8px 0; }
+.copy-box { max-width: 560px; text-align: left; }
+.copy-box textarea { width: 100%; min-height: 220px; resize: vertical; font: 13px/1.5 ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; background: var(--bg); color: inherit; border: 1px solid var(--border); border-radius: 8px; padding: 10px; white-space: pre; }
+.copy-msg { margin: 4px 0 10px; color: var(--muted); }
+.copy-msg.good { color: var(--good); }
+.copy-msg.bad { color: var(--bad); }
 .modal-actions { display: flex; gap: 8px; justify-content: center; flex-wrap: wrap; margin-top: 16px; }
 
 /* ------------------------------------------------------------ Mobile */

@@ -146,6 +146,19 @@
     </div>
   </div>
 
+  <!-- Schéma en texte -->
+  <div class="modal hidden" id="copy-modal">
+    <div class="modal-box copy-box">
+      <h2>Ton schéma en texte</h2>
+      <p class="copy-msg" id="copy-msg">Copie-le, puis colle-le où tu veux avec Ctrl+V.</p>
+      <textarea id="copy-text" readonly spellcheck="false"></textarea>
+      <div class="modal-actions">
+        <button id="copy-close">Fermer</button>
+        <button class="primary" id="copy-do">📋 Copier</button>
+      </div>
+    </div>
+  </div>
+
   <script src="js/components.js"></script>
   <script src="js/cpu.js"></script>
   <script src="js/levels.js"></script>
