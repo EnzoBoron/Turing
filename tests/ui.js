@@ -158,6 +158,43 @@ async function main() {
   await page.click('#screen-asm .desc-toggle');
   check('le bouton réaffiche l\'énoncé', await page.isVisible('#a-desc'));
 
+  console.log('Crayon');
+  await open('and');
+  const drawn = () => page.evaluate(() => (JSON.parse(localStorage.getItem('turing-save-v1')).drawings || {}).and || []);
+  await page.click('#draw-btn');
+  check('le crayon affiche ses outils', await page.isVisible('#draw-tools'));
+  const box = await page.locator('#c-canvas').boundingBox();
+  const stroke = async (x0, y0, x1, y1) => {
+    await page.mouse.move(box.x + x0, box.y + y0);
+    await page.mouse.down();
+    await page.mouse.move(box.x + x1, box.y + y1, { steps: 8 });
+    await page.mouse.up();
+  };
+  const compsBefore = (await page.evaluate(() => window.game.editor.circuit.components.length));
+  await stroke(100, 100, 300, 120);
+  await page.click('#draw-colors .swatch[data-color="#e03131"]');
+  await stroke(100, 200, 300, 220);
+  await page.waitForTimeout(300);
+  let d = await drawn();
+  check('deux traits sont enregistrés', d.length === 2 && d[1].c === '#e03131', JSON.stringify(d.map((s) => s.c)));
+  check('dessiner ne modifie pas le circuit', compsBefore === (await page.evaluate(() => window.game.editor.circuit.components.length)));
+  await page.click('#draw-eraser');
+  await stroke(200, 90, 200, 130);
+  await page.waitForTimeout(300);
+  d = await drawn();
+  check('la gomme efface le trait touché', d.length === 1 && d[0].c === '#e03131');
+  await page.keyboard.press('Control+z');
+  await page.waitForTimeout(300);
+  check('Ctrl+Z annule le dernier trait', (await drawn()).length === 0);
+  await page.click('#draw-colors .swatch[data-color="text"]');
+  await stroke(100, 300, 200, 300);
+  await page.keyboard.press('Escape');
+  check('Échap range le crayon', !(await page.isVisible('#draw-tools')));
+  await page.mouse.click(box.x + 400, box.y + 400);
+  check('hors du mode crayon, la souris revient au circuit', !(await page.evaluate(() => document.body.classList.contains('drawing'))));
+  await open('sum');
+  check('chaque écran a son propre dessin', await page.evaluate(() => !(JSON.parse(localStorage.getItem('turing-save-v1')).drawings || {}).sum));
+
   console.log('Brouillon');
   await open('and');
   await page.fill('#c-notes', 'A B | Q\n0 0 | 0');
@@ -177,6 +214,7 @@ async function main() {
   const data = JSON.parse(fs.readFileSync(file, 'utf8'));
   check('l\'export contient le niveau réussi', data.format === 'turing-sauvegarde' && !!data.done.and);
   check('l\'export contient le circuit', Array.isArray(data.circuits.and && data.circuits.and.components));
+  check('l\'export contient les dessins', data.drawings && data.drawings.and && data.drawings.and.length === 1);
   check('l\'export contient les brouillons', data.notes && data.notes.sum === 'compteur dans R4');
 
   page.once('dialog', (d) => d.accept());

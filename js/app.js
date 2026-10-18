@@ -13,7 +13,7 @@
   // ----------------------------------------------------------- Sauvegarde
 
   const KEY = 'turing-save-v1';
-  let save = { done: {}, circuits: {}, programs: {}, notes: {}, free: false };
+  let save = { done: {}, circuits: {}, programs: {}, notes: {}, drawings: {}, free: false };
   try {
     const raw = localStorage.getItem(KEY);
     if (raw) save = Object.assign(save, JSON.parse(raw));
@@ -82,6 +82,7 @@
 
   function goMenu() {
     leaveLevel();
+    loadDrawing();
     $('topbar-title').textContent = 'du NAND à l\'assembleur';
     renderMenu();
     show('menu');
@@ -123,6 +124,7 @@
   function openLevel(lvl) {
     leaveLevel();
     current = lvl;
+    loadDrawing();
     location.hash = lvl.id;
     $('topbar-title').textContent = chapterOf(lvl).title + ' · ' + lvl.title;
     if (lvl.type === 'circuit') openCircuit(lvl);
@@ -203,6 +205,55 @@
       + `<tr><th>Entrées</th><td>${ins}</td></tr>`
       + `<tr><th>Sorties attendues</th><td>${fmt(t.outputs)}</td></tr></table>${hintHtml(lvl)}</div>`;
   }
+
+  // ------------------------------------------------------------- Crayon
+  // Un dessin par écran (chaque niveau, et le menu), enregistré avec la partie.
+
+  const drawKey = () => (current ? current.id : 'menu');
+  const drawLayer = new window.DrawLayer($('draw-layer'), {
+    onChange: (strokes) => {
+      if (strokes.length) save.drawings[drawKey()] = strokes;
+      else delete save.drawings[drawKey()];
+      persist();
+    },
+  });
+  function loadDrawing() {
+    if (!save.drawings || typeof save.drawings !== 'object') save.drawings = {};
+    const strokes = Array.isArray(save.drawings[drawKey()]) ? save.drawings[drawKey()] : [];
+    drawLayer.load(strokes.filter((s) => s && Array.isArray(s.p)).map((s) => ({ c: String(s.c), p: s.p.slice() })));
+  }
+  function setDrawing(on) {
+    document.body.classList.toggle('drawing', on);
+    $('draw-tools').classList.toggle('hidden', !on);
+    $('draw-btn').classList.toggle('on', on);
+    $('draw-btn').textContent = on ? '✓ Terminer' : '✎ Crayon';
+    drawLayer.draw();
+  }
+  function setPen(color, eraser) {
+    drawLayer.color = color;
+    drawLayer.eraser = eraser;
+    document.body.classList.toggle('erasing', eraser);
+    for (const b of document.querySelectorAll('#draw-colors .swatch')) {
+      b.classList.toggle('on', !eraser && b.dataset.color === color);
+    }
+    $('draw-eraser').classList.toggle('on', eraser);
+    drawLayer.draw();
+  }
+  for (const b of document.querySelectorAll('#draw-colors .swatch')) {
+    b.style.background = b.dataset.color === 'text' ? 'var(--text)' : b.dataset.color;
+    b.addEventListener('click', () => setPen(b.dataset.color, false));
+  }
+  $('draw-btn').onclick = () => setDrawing(!document.body.classList.contains('drawing'));
+  $('draw-eraser').onclick = () => setPen(drawLayer.color, !drawLayer.eraser);
+  $('draw-undo').onclick = () => drawLayer.undo();
+  $('draw-clear').onclick = () => drawLayer.clear();
+  document.addEventListener('keydown', (e) => {
+    if (!document.body.classList.contains('drawing')) return;
+    if (e.key === 'Escape') setDrawing(false);
+    else if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'z') { e.preventDefault(); drawLayer.undo(); }
+  });
+  setPen('text', false);
+  loadDrawing();
 
   // Bouton qui cache ou affiche tout l'énoncé ; le choix vaut pour tous les niveaux.
   function applyDescHidden() {
@@ -659,7 +710,7 @@
     if (!data || data.format !== SAVE_FORMAT) throw new Error('ce fichier n\'est pas une sauvegarde de TURING');
     const obj = (v) => (v && typeof v === 'object' && !Array.isArray(v) ? v : {});
     return {
-      done: obj(data.done), circuits: obj(data.circuits), programs: obj(data.programs), notes: obj(data.notes),
+      done: obj(data.done), circuits: obj(data.circuits), programs: obj(data.programs), notes: obj(data.notes), drawings: obj(data.drawings),
       free: !!data.free, notesClosed: !!data.notesClosed, descHidden: !!data.descHidden,
     };
   }
@@ -678,6 +729,7 @@
       flush();
       renderMenu();
       applyDescHidden();
+      loadDrawing();
       saveMessage('Sauvegarde importée : ' + n + ' niveaux réussis.', true);
     } catch (err) {
       saveMessage('Impossible d\'importer : ' + err.message + '.', false);
@@ -685,11 +737,12 @@
   });
 
   $('reset-progress').onclick = () => {
-    if (!confirm('Effacer toute la progression, les circuits, les programmes et les brouillons ?')) return;
-    save = { done: {}, circuits: {}, programs: {}, notes: {}, free: false };
+    if (!confirm('Effacer toute la progression, les circuits, les programmes, les brouillons et les dessins ?')) return;
+    save = { done: {}, circuits: {}, programs: {}, notes: {}, drawings: {}, free: false };
     persist();
     renderMenu();
     applyDescHidden();
+    loadDrawing();
   };
   document.addEventListener('keydown', (e) => {
     if (e.key === 'Escape' && !$('modal').classList.contains('hidden')) hideModal();

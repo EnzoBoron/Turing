@@ -16,7 +16,8 @@ qui ne peuvent pas lire les dossiers `css/` et `js/`.)
 
 ## Sauvegarde
 
-La progression, les circuits, les programmes et les brouillons (la zone de notes de chaque niveau)
+La progression, les circuits, les programmes, les brouillons (la zone de notes de chaque niveau)
+et les dessins au crayon
 sont enregistrés automatiquement dans le navigateur.
 Depuis le menu, **Exporter la sauvegarde** télécharge un fichier `turing-sauvegarde-AAAA-MM-JJ.json`,
 et **Importer une sauvegarde** le recharge : pratique pour changer d'ordinateur ou de navigateur,
@@ -39,6 +40,8 @@ ou pour garder une copie de sécurité.
 - Clique sur une entrée (A, B…) pour basculer sa valeur : les fils allumés sont orange.
 - <kbd>Suppr</kbd> ou clic droit supprime la sélection. Molette : zoom ; glisser le fond : déplacer la vue.
 - **Tick** fait avancer l'horloge dans les niveaux avec mémoire.
+- **✎ Crayon** (en haut) : dessine par-dessus tout l'écran, avec plusieurs couleurs, une gomme et
+  <kbd>Ctrl</kbd>+<kbd>Z</kbd> ; <kbd>Échap</kbd> range le crayon. Chaque écran garde son dessin.
 
 ## Le processeur NANDO-8
 
@@ -74,6 +77,7 @@ js/components.js    composants et simulateur de circuits
 js/cpu.js           assembleur et émulateur NANDO-8
 js/levels.js        chapitres et niveaux
 js/editor.js        éditeur de circuits (canvas)
+js/draw.js          crayon pour dessiner par-dessus l'écran
 js/app.js           menu, progression, écrans
 tests/run.js        vérifie que chaque niveau est résoluble
 tests/ui.js         tests de l'interface (Playwright)

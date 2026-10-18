@@ -13,6 +13,19 @@
     </button>
     <span class="subtitle" id="topbar-title">du NAND à l'assembleur</span>
     <span class="spacer"></span>
+    <span class="draw-tools hidden" id="draw-tools">
+      <span class="swatches" id="draw-colors">
+        <button class="swatch" data-color="text" title="Crayon noir"></button>
+        <button class="swatch" data-color="#e8590c" title="Crayon orange"></button>
+        <button class="swatch" data-color="#e03131" title="Crayon rouge"></button>
+        <button class="swatch" data-color="#1c7ed6" title="Crayon bleu"></button>
+        <button class="swatch" data-color="#2f9e44" title="Crayon vert"></button>
+      </span>
+      <button id="draw-eraser" title="Gomme : efface les traits que tu touches">Gomme</button>
+      <button id="draw-undo" title="Annuler le dernier trait (Ctrl+Z)">↶</button>
+      <button class="danger" id="draw-clear" title="Effacer tous les dessins de cet écran">Effacer le dessin</button>
+    </span>
+    <button id="draw-btn" title="Dessiner par-dessus l'écran (Échap pour arrêter)">✎ Crayon</button>
     <span class="progress" id="progress"></span>
   </header>
 
@@ -115,6 +128,9 @@
     <article class="lesson" id="lesson"></article>
   </main>
 
+  <!-- Calque du crayon, par-dessus tous les écrans -->
+  <canvas class="draw-layer" id="draw-layer"></canvas>
+
   <!-- Victoire -->
   <div class="modal hidden" id="modal">
     <div class="modal-box">
@@ -133,6 +149,7 @@
   <script src="js/cpu.js"></script>
   <script src="js/levels.js"></script>
   <script src="js/editor.js"></script>
+  <script src="js/draw.js"></script>
   <script src="js/app.js"></script>
 </body>
 </html>
