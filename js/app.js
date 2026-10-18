@@ -13,10 +13,11 @@
   // ----------------------------------------------------------- Sauvegarde
 
   const KEY = 'turing-save-v1';
-  let save = { done: {}, circuits: {}, programs: {}, free: false };
+  let save = { done: {}, circuits: {}, programs: {}, notes: {}, free: false };
   try {
     const raw = localStorage.getItem(KEY);
     if (raw) save = Object.assign(save, JSON.parse(raw));
+    if (!save.notes || typeof save.notes !== 'object') save.notes = {};
   } catch (e) { /* stockage indisponible : la partie ne sera pas sauvegardée */ }
 
   let saveTimer = null;
@@ -203,10 +204,25 @@
       + `<tr><th>Sorties attendues</th><td>${fmt(t.outputs)}</td></tr></table>${hintHtml(lvl)}</div>`;
   }
 
+  // Brouillon : notes libres du joueur, une par niveau, enregistrées avec la partie.
+  function openNotes(prefix, lvl) {
+    const box = $(prefix + '-notes-box');
+    const area = $(prefix + '-notes');
+    box.open = !save.notesClosed;
+    area.value = save.notes[lvl.id] || '';
+    area.oninput = () => {
+      if (area.value) save.notes[lvl.id] = area.value;
+      else delete save.notes[lvl.id];
+      persist();
+    };
+    box.ontoggle = () => { save.notesClosed = !box.open; persist(); };
+  }
+
   function openCircuit(lvl) {
     $('c-chapter').textContent = chapterOf(lvl).title;
     $('c-title').textContent = lvl.title;
     $('c-desc').innerHTML = lvl.desc + circuitGuide(lvl);
+    openNotes('c', lvl);
     $('c-results').classList.add('hidden');
     document.querySelector('#screen-circuit .seq-only').classList.toggle('hidden', !lvl.sequential);
 
@@ -372,6 +388,7 @@
   function openAsm(lvl) {
     $('a-title').textContent = lvl.title;
     $('a-desc').innerHTML = lvl.desc + asmGuide(lvl);
+    openNotes('a', lvl);
     $('a-isa').innerHTML = isaHtml(lvl.raw, extFor(lvl), lvl.introduces || []);
     $('a-results').classList.add('hidden');
     const sel = $('a-test');
@@ -628,7 +645,10 @@
     try { data = JSON.parse(text); } catch (e) { throw new Error('ce fichier n\'est pas un JSON valide'); }
     if (!data || data.format !== SAVE_FORMAT) throw new Error('ce fichier n\'est pas une sauvegarde de TURING');
     const obj = (v) => (v && typeof v === 'object' && !Array.isArray(v) ? v : {});
-    return { done: obj(data.done), circuits: obj(data.circuits), programs: obj(data.programs), free: !!data.free };
+    return {
+      done: obj(data.done), circuits: obj(data.circuits), programs: obj(data.programs), notes: obj(data.notes),
+      free: !!data.free, notesClosed: !!data.notesClosed,
+    };
   }
 
   $('export-save').onclick = exportSave;
@@ -651,8 +671,8 @@
   });
 
   $('reset-progress').onclick = () => {
-    if (!confirm('Effacer toute la progression, les circuits et les programmes ?')) return;
-    save = { done: {}, circuits: {}, programs: {}, free: false };
+    if (!confirm('Effacer toute la progression, les circuits, les programmes et les brouillons ?')) return;
+    save = { done: {}, circuits: {}, programs: {}, notes: {}, free: false };
     persist();
     renderMenu();
   };

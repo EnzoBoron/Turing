@@ -259,6 +259,13 @@ table.truth tr.sep td { border-top: 2px solid var(--border); }
 .io-list .ok { border-color: var(--good); color: var(--good); }
 .io-list .ko { border-color: var(--bad); color: var(--bad); }
 .asm-errors { background: color-mix(in srgb, var(--bad) 12%, transparent); color: var(--bad); border-radius: 8px; padding: 6px 10px; font-size: 13px; margin-bottom: 8px; }
+.notes { margin: 10px 0 4px; font-size: 14px; }
+.notes summary { cursor: pointer; font-weight: 700; }
+.notes textarea {
+  display: block; width: 100%; box-sizing: border-box; min-height: 140px; margin-top: 6px; resize: vertical;
+  font: 13px/1.45 ui-monospace, "SF Mono", Menlo, Consolas, monospace; tab-size: 4;
+  background: var(--panel-2); color: var(--text); border: 1px solid var(--border); border-radius: 6px; padding: 8px 10px;
+}
 .isa { margin-top: 16px; font-size: 14px; }
 .isa summary { cursor: pointer; font-weight: 700; }
 .isa-table td:nth-child(2) { white-space: nowrap; }

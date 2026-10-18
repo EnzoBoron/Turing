@@ -16,7 +16,8 @@ qui ne peuvent pas lire les dossiers `css/` et `js/`.)
 
 ## Sauvegarde
 
-La progression, les circuits et les programmes sont enregistrés automatiquement dans le navigateur.
+La progression, les circuits, les programmes et les brouillons (la zone de notes de chaque niveau)
+sont enregistrés automatiquement dans le navigateur.
 Depuis le menu, **Exporter la sauvegarde** télécharge un fichier `turing-sauvegarde-AAAA-MM-JJ.json`,
 et **Importer une sauvegarde** le recharge : pratique pour changer d'ordinateur ou de navigateur,
 ou pour garder une copie de sécurité.

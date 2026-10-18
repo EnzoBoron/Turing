@@ -149,6 +149,17 @@ async function main() {
   check('store remplit la case 7', (await page.textContent('#a-cpu .ram div:nth-child(8) b')) === '7');
   check('call empile l\'adresse de retour', (await page.textContent('#a-cpu')).includes('vide') === false);
 
+  console.log('Brouillon');
+  await open('and');
+  await page.fill('#c-notes', 'A B | Q\n0 0 | 0');
+  await page.keyboard.press('Delete');
+  check('taper dans le brouillon ne touche pas au circuit', (await page.inputValue('#c-notes')).startsWith('A B'));
+  await open('sum');
+  check('chaque niveau a son propre brouillon', (await page.inputValue('#a-notes')) === '');
+  await page.fill('#a-notes', 'compteur dans R4');
+  await open('and');
+  check('le brouillon est retrouvé', (await page.inputValue('#c-notes')) === 'A B | Q\n0 0 | 0');
+
   console.log('Fichier de sauvegarde');
   await page.click('#home-btn');
   const [download] = await Promise.all([page.waitForEvent('download'), page.click('#export-save')]);
@@ -157,6 +168,7 @@ async function main() {
   const data = JSON.parse(fs.readFileSync(file, 'utf8'));
   check('l\'export contient le niveau réussi', data.format === 'turing-sauvegarde' && !!data.done.and);
   check('l\'export contient le circuit', Array.isArray(data.circuits.and && data.circuits.and.components));
+  check('l\'export contient les brouillons', data.notes && data.notes.sum === 'compteur dans R4');
 
   page.once('dialog', (d) => d.accept());
   await page.click('#reset-progress');
