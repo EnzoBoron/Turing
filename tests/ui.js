@@ -149,6 +149,15 @@ async function main() {
   check('store remplit la case 7', (await page.textContent('#a-cpu .ram div:nth-child(8) b')) === '7');
   check('call empile l\'adresse de retour', (await page.textContent('#a-cpu')).includes('vide') === false);
 
+  console.log('Énoncé repliable');
+  await open('and');
+  await page.click('#screen-circuit .desc-toggle');
+  check('le bouton cache l\'énoncé', !(await page.isVisible('#c-desc')));
+  await open('sum');
+  check('l\'énoncé reste caché dans les autres niveaux', !(await page.isVisible('#a-desc')));
+  await page.click('#screen-asm .desc-toggle');
+  check('le bouton réaffiche l\'énoncé', await page.isVisible('#a-desc'));
+
   console.log('Brouillon');
   await open('and');
   await page.fill('#c-notes', 'A B | Q\n0 0 | 0');

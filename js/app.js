@@ -204,6 +204,19 @@
       + `<tr><th>Sorties attendues</th><td>${fmt(t.outputs)}</td></tr></table>${hintHtml(lvl)}</div>`;
   }
 
+  // Bouton qui cache ou affiche tout l'énoncé ; le choix vaut pour tous les niveaux.
+  function applyDescHidden() {
+    for (const btn of document.querySelectorAll('.desc-toggle')) {
+      $(btn.dataset.desc).classList.toggle('hidden', !!save.descHidden);
+      btn.textContent = save.descHidden ? '▸ Afficher l\'énoncé' : '▾ Cacher l\'énoncé';
+      btn.setAttribute('aria-expanded', String(!save.descHidden));
+    }
+  }
+  for (const btn of document.querySelectorAll('.desc-toggle')) {
+    btn.addEventListener('click', () => { save.descHidden = !save.descHidden; persist(); applyDescHidden(); });
+  }
+  applyDescHidden();
+
   // Brouillon : notes libres du joueur, une par niveau, enregistrées avec la partie.
   function openNotes(prefix, lvl) {
     const box = $(prefix + '-notes-box');
@@ -647,7 +660,7 @@
     const obj = (v) => (v && typeof v === 'object' && !Array.isArray(v) ? v : {});
     return {
       done: obj(data.done), circuits: obj(data.circuits), programs: obj(data.programs), notes: obj(data.notes),
-      free: !!data.free, notesClosed: !!data.notesClosed,
+      free: !!data.free, notesClosed: !!data.notesClosed, descHidden: !!data.descHidden,
     };
   }
 
@@ -664,6 +677,7 @@
       save = loaded;
       flush();
       renderMenu();
+      applyDescHidden();
       saveMessage('Sauvegarde importée : ' + n + ' niveaux réussis.', true);
     } catch (err) {
       saveMessage('Impossible d\'importer : ' + err.message + '.', false);
@@ -675,6 +689,7 @@
     save = { done: {}, circuits: {}, programs: {}, notes: {}, free: false };
     persist();
     renderMenu();
+    applyDescHidden();
   };
   document.addEventListener('keydown', (e) => {
     if (e.key === 'Escape' && !$('modal').classList.contains('hidden')) hideModal();

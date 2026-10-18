@@ -259,6 +259,8 @@ table.truth tr.sep td { border-top: 2px solid var(--border); }
 .io-list .ok { border-color: var(--good); color: var(--good); }
 .io-list .ko { border-color: var(--bad); color: var(--bad); }
 .asm-errors { background: color-mix(in srgb, var(--bad) 12%, transparent); color: var(--bad); border-radius: 8px; padding: 6px 10px; font-size: 13px; margin-bottom: 8px; }
+.desc-toggle { background: none; border: none; padding: 0; margin: 0 0 8px; color: var(--accent); font-weight: 600; font-size: 13px; cursor: pointer; }
+.desc-toggle:hover { text-decoration: underline; }
 .notes { margin: 10px 0 4px; font-size: 14px; }
 .notes summary { cursor: pointer; font-weight: 700; }
 .notes textarea {
