@@ -206,6 +206,17 @@ async function main() {
   await open('and');
   check('le brouillon est retrouvé', (await page.inputValue('#c-notes')) === 'A B | Q\n0 0 | 0');
 
+  console.log('Copier le schéma');
+  await page.evaluate(() => {
+    window.copied = null;
+    Object.defineProperty(navigator, 'clipboard', { value: { writeText: async (t) => { window.copied = t; } } });
+  });
+  await page.click('#c-copy');
+  await page.waitForFunction(() => window.copied !== null);
+  const copied = await page.evaluate(() => window.copied);
+  check('le schéma copié décrit le circuit', copied.startsWith('Circuit « ') && /NAND1 = NAND\(/.test(copied), copied);
+  check('un message confirme la copie', await page.isVisible('#c-toast'));
+
   console.log('Fichier de sauvegarde');
   await page.click('#home-btn');
   const [download] = await Promise.all([page.waitForEvent('download'), page.click('#export-save')]);

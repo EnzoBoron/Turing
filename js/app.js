@@ -2,7 +2,7 @@
 (function () {
   'use strict';
 
-  const { COMPONENTS, verifyCircuit, circuitCost } = window.Circuits;
+  const { COMPONENTS, verifyCircuit, circuitCost, describeCircuit } = window.Circuits;
   const { CHAPTERS, LEVELS } = window.Levels;
   const Nando = window.Nando;
 
@@ -316,6 +316,24 @@
     });
   }
 
+  // Le presse-papiers moderne n'existe qu'en contexte sécurisé (https ou localhost) :
+  // ailleurs, on passe par une zone de texte temporaire.
+  function copyText(text) {
+    if (navigator.clipboard && window.isSecureContext) return navigator.clipboard.writeText(text);
+    return new Promise((resolve, reject) => {
+      const area = document.createElement('textarea');
+      area.value = text;
+      area.style.position = 'fixed';
+      area.style.opacity = '0';
+      document.body.appendChild(area);
+      area.select();
+      let ok = false;
+      try { ok = document.execCommand('copy'); } catch (e) { ok = false; }
+      area.remove();
+      (ok ? resolve : reject)();
+    });
+  }
+
   let toastTimer = null;
   function showToast(text) {
     const el = $('c-toast');
@@ -360,6 +378,13 @@
   };
   $('c-tick').onclick = () => editor.tick();
   $('c-reset-state').onclick = () => editor.resetState();
+  $('c-copy').onclick = () => {
+    const text = describeCircuit(current, editor.circuit);
+    copyText(text).then(
+      () => showToast('Schéma copié : colle-le où tu veux avec Ctrl+V.'),
+      () => window.prompt('Copie le schéma ci-dessous :', text),
+    );
+  };
   $('c-fit').onclick = () => editor.fitView();
   $('c-delete').onclick = () => editor.deleteSelection();
   $('c-clear').onclick = () => {

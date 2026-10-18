@@ -204,7 +204,44 @@
     return { nand, delays };
   }
 
-  const api = { COMPONENTS, getDef, Simulator, verifyCircuit, circuitCost };
+  // Portes dont l'ordre des entrées ne compte pas : on n'écrit pas le nom des pattes.
+  const SYMMETRIC = new Set(['NAND', 'NOT', 'AND', 'OR', 'NOR', 'XOR', 'XNOR']);
+
+  // Décrit un circuit en texte, une ligne par composant : « MUX1 = MUX(A: AND1, B: OR1, S: Op0) ».
+  // Les composants sont numérotés par type, de gauche à droite puis de haut en bas.
+  function describeCircuit(level, circuit) {
+    const comps = circuit.components.slice().sort((p, q) => p.x - q.x || p.y - q.y);
+    const names = new Map();
+    const counts = {};
+    for (const c of comps) {
+      if (c.type === 'IN') names.set(c.id, level.inputs[c.idx]);
+      else if (c.type === 'OUT') names.set(c.id, level.outputs[c.idx]);
+      else {
+        const base = getDef(c.type).label.replace(/\s+/g, '');
+        counts[base] = (counts[base] || 0) + 1;
+        names.set(c.id, base + counts[base]);
+      }
+    }
+    const source = (c, p) => {
+      const w = circuit.wires.find((o) => o.to.c === c.id && o.to.p === p);
+      if (!w || !names.has(w.from.c)) return 'rien';
+      const from = circuit.components.find((o) => o.id === w.from.c);
+      const outs = getDef(from.type).outputs;
+      return names.get(w.from.c) + (outs.length > 1 ? '.' + outs[w.from.p] : '');
+    };
+    const lines = [`Circuit « ${level.title} » (${circuitCost(circuit).nand} NAND)`];
+    for (const c of comps) {
+      if (c.type === 'IN' || c.type === 'OUT') continue;
+      const def = getDef(c.type);
+      const args = def.inputs.map((pin, p) => (SYMMETRIC.has(c.type) ? '' : pin + ': ') + source(c, p));
+      lines.push(`${names.get(c.id)} = ${def.label}(${args.join(', ')})`);
+    }
+    circuit.components.filter((c) => c.type === 'OUT').sort((p, q) => p.idx - q.idx)
+      .forEach((c) => lines.push(`${names.get(c.id)} = ${source(c, 0)}`));
+    return lines.join('\n');
+  }
+
+  const api = { COMPONENTS, getDef, Simulator, verifyCircuit, circuitCost, describeCircuit };
   global.Circuits = api;
   if (typeof module !== 'undefined') module.exports = api;
 })(typeof window !== 'undefined' ? window : globalThis);

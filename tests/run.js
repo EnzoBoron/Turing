@@ -3,7 +3,7 @@
 // Lancement : node tests/run.js
 'use strict';
 
-const { verifyCircuit, getDef } = require('../js/components.js');
+const { verifyCircuit, getDef, describeCircuit } = require('../js/components.js');
 const { LEVELS } = require('../js/levels.js');
 const Nando = require('../js/cpu.js');
 
@@ -474,6 +474,17 @@ console.log('Assembleur et CPU');
   for (const [i, op] of Nando.ALU_OPS.entries()) {
     check('disassemble ' + op, Nando.disassemble(0b01000000 | i) === op);
   }
+}
+
+console.log('Schéma en texte');
+{
+  const lvl = LEVELS.find((l) => l.id === 'alu1');
+  const c = build(lvl, { a: ['AND', 'A', 'B'], s: ['FULL_ADD', 'A', 'B', 'Ci'], m: ['MUX', 'a', 's.1', 'Op0'] }, ['m', 's.1']);
+  const text = describeCircuit(lvl, c);
+  check('une ligne par porte, entrées nommées', text.includes('AND1 = AND(A, B)') && text.includes('MUX1 = MUX(A: AND1, B: ADD1.Co, S: Op0)'), text);
+  check('les sorties du niveau', text.includes('R = MUX1') && text.includes('Co = ADD1.Co'), text);
+  c.wires = c.wires.filter((w) => w.to.c !== 'm' || w.to.p !== 2);
+  check('une patte libre est signalée', describeCircuit(lvl, c).includes('S: rien'));
 }
 
 console.log('Composants débloqués');
