@@ -115,29 +115,11 @@
       <p>Exemple : si A = 1, Q doit valoir 0 ; si A = 0, Q doit valoir 1.</p>
       <p><b>À savoir :</b> une même sortie peut alimenter <i>plusieurs</i> entrées : tire simplement un deuxième fil
       depuis la même pastille. Par contre, une entrée ne reçoit qu'un seul fil.</p>`,
-id: 'not', chapter: 'gates', title: 'NOT', unlock: 'NOT',
-    inputs: ['A'], outputs: ['Q'],
-    pins: { A: 'l\'entrée', Q: 'l\'inverse de A' },
-    desc: `<p>La porte <b>NOT</b> (« NON ») est la plus simple : elle a une seule entrée et donne <b>l'inverse</b>.
-      0 devient 1, et 1 devient 0.</p>
-      <p><b>Objectif :</b> fabrique une porte NOT en n'utilisant que des portes NAND. Une fois réussie, elle rejoint
-      ta palette et tu pourras la réutiliser dans les niveaux suivants.</p>
-      <p>Exemple : si A = 1, Q doit valoir 0 ; si A = 0, Q doit valoir 1.</p>
-      <p><b>À savoir :</b> une même sortie peut alimenter <i>plusieurs</i> entrées : tire simplement un deuxième fil
-      depuis la même pastille. Par contre, une entrée ne reçoit qu'un seul fil.</p>`,
     hint: 'Que fait une porte NAND quand ses deux entrées reçoivent exactement le même signal ?',
     tests: truthTable(1, ([a]) => [1 - a]),
   });
   add({
     id: 'constants', chapter: 'gates', title: 'Constantes',
-    inputs: ['A'], outputs: ['Un', 'Zéro'],
-    pins: { A: 'une entrée quelconque : ton circuit doit marcher qu\'elle vaille 0 ou 1', Un: 'doit toujours valoir 1', Zéro: 'doit toujours valoir 0' },
-    desc: `<p>Parfois, un circuit a besoin d'un signal qui ne change jamais : toujours 1, ou toujours 0.
-      On appelle ça une <b>constante</b>.</p>
-      <p><b>Objectif :</b> à partir de la seule entrée A, produis deux sorties : <b>Un</b>, qui vaut toujours 1,
-      et <b>Zéro</b>, qui vaut toujours 0. Elles ne doivent pas bouger, que A vaille 0 ou 1.</p>
-      <p>Pour tester, clique plusieurs fois sur A : tes deux sorties doivent rester figées.</p>`,
-id: 'constants', chapter: 'gates', title: 'Constantes',
     inputs: ['A'], outputs: ['Un', 'Zéro'],
     pins: { A: 'une entrée quelconque : ton circuit doit marcher qu\'elle vaille 0 ou 1', Un: 'doit toujours valoir 1', Zéro: 'doit toujours valoir 0' },
     desc: `<p>Parfois, un circuit a besoin d'un signal qui ne change jamais : toujours 1, ou toujours 0.
@@ -156,26 +138,11 @@ id: 'constants', chapter: 'gates', title: 'Constantes',
       C'est comme une porte à deux serrures : il faut les deux clés pour l'ouvrir.</p>
       <p><b>Objectif :</b> construis la porte AND. Elle rejoindra ta palette.</p>
       <p>Exemple : A = 1 et B = 1 donnent Q = 1. Dès qu'une entrée vaut 0, Q vaut 0.</p>`,
-id: 'and', chapter: 'gates', title: 'AND', unlock: 'AND',
-    inputs: ['A', 'B'], outputs: ['Q'],
-    pins: { ...AB, Q: '1 seulement si A et B valent 1' },
-    desc: `<p>La porte <b>AND</b> (« ET ») vaut 1 seulement si A <b>et</b> B valent 1 tous les deux.
-      C'est comme une porte à deux serrures : il faut les deux clés pour l'ouvrir.</p>
-      <p><b>Objectif :</b> construis la porte AND. Elle rejoindra ta palette.</p>
-      <p>Exemple : A = 1 et B = 1 donnent Q = 1. Dès qu'une entrée vaut 0, Q vaut 0.</p>`,
     hint: 'NAND veut dire « NOT AND » : c\'est un AND suivi d\'un NOT. Comment annuler ce NOT ?',
     tests: truthTable(2, ([a, c]) => [a & c]),
   });
   add({
     id: 'and3', chapter: 'gates', title: 'AND à 3 entrées',
-    inputs: ['A', 'B', 'C'], outputs: ['Q'],
-    pins: { ...ABC, Q: '1 seulement si A, B et C valent tous 1' },
-    desc: `<p>Les portes peuvent s'enchaîner : la sortie d'une porte peut devenir l'entrée de la suivante.
-      C'est comme ça qu'on construit des circuits de plus en plus grands.</p>
-      <p><b>Objectif :</b> Q doit valoir 1 seulement si <b>les trois</b> entrées A, B et C valent 1.
-      Si une seule vaut 0, Q vaut 0.</p>
-      <p>Exemple : A = 1, B = 1 et C = 0 donnent Q = 0.</p>`,
-id: 'and3', chapter: 'gates', title: 'AND à 3 entrées',
     inputs: ['A', 'B', 'C'], outputs: ['Q'],
     pins: { ...ABC, Q: '1 seulement si A, B et C valent tous 1' },
     desc: `<p>Les portes peuvent s'enchaîner : la sortie d'une porte peut devenir l'entrée de la suivante.
@@ -194,26 +161,11 @@ id: 'and3', chapter: 'gates', title: 'AND à 3 entrées',
       <p><b>Objectif :</b> Q vaut 1 seulement quand A vaut 1 <b>et</b> que B vaut 0. Dès que B vaut 1, Q est bloqué
       à 0, quelle que soit la valeur de A.</p>
       <p>Exemples : A = 1 et B = 0 donnent Q = 1 ; A = 1 et B = 1 donnent Q = 0 (veto) ; si A = 0, Q vaut toujours 0.</p>`,
-id: 'a_not_b', chapter: 'gates', title: 'A sans B',
-    inputs: ['A', 'B'], outputs: ['Q'],
-    pins: { A: 'le signal à laisser passer', B: 'le veto : quand il vaut 1, il bloque A', Q: '1 seulement si A = 1 et B = 0' },
-    desc: `<p>Dans ce circuit, B joue le rôle d'un <b>veto</b> : il peut bloquer A.</p>
-      <p><b>Objectif :</b> Q vaut 1 seulement quand A vaut 1 <b>et</b> que B vaut 0. Dès que B vaut 1, Q est bloqué
-      à 0, quelle que soit la valeur de A.</p>
-      <p>Exemples : A = 1 et B = 0 donnent Q = 1 ; A = 1 et B = 1 donnent Q = 0 (veto) ; si A = 0, Q vaut toujours 0.</p>`,
     hint: 'Tu veux « A et (pas B) ». Tu as déjà construit les deux portes nécessaires.',
     tests: truthTable(2, ([a, c]) => [a & (1 - c)]),
   });
   add({
     id: 'or', chapter: 'gates', title: 'OR', unlock: 'OR',
-    inputs: ['A', 'B'], outputs: ['Q'],
-    pins: { ...AB, Q: '1 si au moins une des deux entrées vaut 1' },
-    desc: `<p>La porte <b>OR</b> (« OU ») vaut 1 si <b>au moins une</b> de ses entrées vaut 1 : A, ou B, ou les deux.
-      Elle ne vaut 0 que si les deux entrées valent 0.</p>
-      <p>Exemple de la vraie vie : une lampe qui s'allume si on appuie sur l'interrupteur de l'entrée <i>ou</i>
-      sur celui du salon.</p>
-      <p><b>Objectif :</b> construis la porte OR. Elle rejoindra ta palette.</p>`,
-id: 'or', chapter: 'gates', title: 'OR', unlock: 'OR',
     inputs: ['A', 'B'], outputs: ['Q'],
     pins: { ...AB, Q: '1 si au moins une des deux entrées vaut 1' },
     desc: `<p>La porte <b>OR</b> (« OU ») vaut 1 si <b>au moins une</b> de ses entrées vaut 1 : A, ou B, ou les deux.
@@ -232,26 +184,11 @@ id: 'or', chapter: 'gates', title: 'OR', unlock: 'OR',
       Q ne vaut 0 que si les trois sont à 0.</p>
       <p>Exemple de la vraie vie : un détecteur de fumée dans trois pièces. L'alarme sonne si n'importe laquelle
       des pièces détecte de la fumée.</p>`,
-id: 'or3', chapter: 'gates', title: 'OR à 3 entrées',
-    inputs: ['A', 'B', 'C'], outputs: ['Q'],
-    pins: { ...ABC, Q: '1 si au moins une des trois entrées vaut 1' },
-    desc: `<p><b>Objectif :</b> Q vaut 1 si <b>au moins une</b> des trois entrées A, B, C vaut 1.
-      Q ne vaut 0 que si les trois sont à 0.</p>
-      <p>Exemple de la vraie vie : un détecteur de fumée dans trois pièces. L'alarme sonne si n'importe laquelle
-      des pièces détecte de la fumée.</p>`,
     hint: 'Même idée que pour le AND à 3 entrées.',
     tests: truthTable(3, ([a, c, d]) => [a | c | d]),
   });
   add({
     id: 'implies', chapter: 'gates', title: 'Implication',
-    inputs: ['A', 'B'], outputs: ['Q'],
-    pins: { A: 'la condition : « si A… »', B: 'la conséquence : « … alors B »', Q: '0 seulement quand la règle est enfreinte (A = 1 et B = 0)' },
-    desc: `<p>En logique, « <b>si A alors B</b> » est une promesse. Par exemple : « s'il pleut (A), alors je prends
-      mon parapluie (B) ».</p>
-      <p>La promesse n'est rompue que dans un seul cas : il pleut <b>et</b> je n'ai pas pris mon parapluie
-      (A = 1, B = 0). S'il ne pleut pas, la promesse tient toujours, parapluie ou pas.</p>
-      <p><b>Objectif :</b> Q vaut 0 quand la promesse est rompue (A = 1 et B = 0), et 1 dans les trois autres cas.</p>`,
-id: 'implies', chapter: 'gates', title: 'Implication',
     inputs: ['A', 'B'], outputs: ['Q'],
     pins: { A: 'la condition : « si A… »', B: 'la conséquence : « … alors B »', Q: '0 seulement quand la règle est enfreinte (A = 1 et B = 0)' },
     desc: `<p>En logique, « <b>si A alors B</b> » est une promesse. Par exemple : « s'il pleut (A), alors je prends
@@ -323,12 +260,6 @@ id: 'implies', chapter: 'gates', title: 'Implication',
     desc: `<p><b>Objectif :</b> Q vaut 1 si <b>exactement une</b> des trois entrées vaut 1 : ni zéro, ni deux, ni trois.</p>
       <p>Exemples : (0, 1, 0) donne 1 ; (0, 0, 0) donne 0 ; (1, 1, 0) donne 0 ; (1, 1, 1) donne 0.</p>
       <p>Exemple de la vraie vie : une question à choix unique dans un formulaire, où une seule case doit être cochée.</p>`,
-id: 'exactly_one', chapter: 'gates', title: 'Exactement un',
-    inputs: ['A', 'B', 'C'], outputs: ['Q'],
-    pins: { ...ABC, Q: '1 si une seule des trois entrées vaut 1' },
-    desc: `<p><b>Objectif :</b> Q vaut 1 si <b>exactement une</b> des trois entrées vaut 1 : ni zéro, ni deux, ni trois.</p>
-      <p>Exemples : (0, 1, 0) donne 1 ; (0, 0, 0) donne 0 ; (1, 1, 0) donne 0 ; (1, 1, 1) donne 0.</p>
-      <p>Exemple de la vraie vie : une question à choix unique dans un formulaire, où une seule case doit être cochée.</p>`,
     hint: 'Compare avec le niveau Parité : sur quelle ligne les deux niveaux ne sont-ils pas d\'accord ?',
     tests: truthTable(3, ([a, c, d]) => [a + c + d === 1 ? 1 : 0]),
   });
@@ -349,26 +280,11 @@ id: 'exactly_one', chapter: 'gates', title: 'Exactement un',
     desc: `<p><b>Objectif :</b> Q vaut 1 si les trois entrées ont <b>la même valeur</b> : toutes à 0, ou toutes à 1.
       Dès que l'une est différente des autres, Q vaut 0.</p>
       <p>Exemples : (0, 0, 0) et (1, 1, 1) donnent 1 ; (1, 1, 0) donne 0.</p>`,
-id: 'all_equal', chapter: 'gates', title: 'Unanimité',
-    inputs: ['A', 'B', 'C'], outputs: ['Q'],
-    pins: { ...ABC, Q: '1 si A, B et C ont tous la même valeur' },
-    desc: `<p><b>Objectif :</b> Q vaut 1 si les trois entrées ont <b>la même valeur</b> : toutes à 0, ou toutes à 1.
-      Dès que l'une est différente des autres, Q vaut 0.</p>
-      <p>Exemples : (0, 0, 0) et (1, 1, 1) donnent 1 ; (1, 1, 0) donne 0.</p>`,
     hint: 'Si A est égal à B, et que B est égal à C, que peux-tu dire de A et C ?',
     tests: truthTable(3, ([a, c, d]) => [a === c && c === d ? 1 : 0]),
   });
   add({
     id: 'eq2', chapter: 'gates', title: 'Égalité 2 bits',
-    inputs: ['A0', 'A1', 'B0', 'B1'], outputs: ['Égal'],
-    pins: { ...bitPins('A', 2), ...bitPins('B', 2), Égal: '1 si le nombre A est égal au nombre B' },
-    desc: `<p>Jusqu'ici, chaque fil valait juste 0 ou 1. En mettant plusieurs fils ensemble, on peut écrire
-      de <b>vrais nombres</b> en binaire.</p>
-      <p>${NUM2}</p>
-      <p>Les 4 valeurs possibles, écrites A1 A0 : <code>00</code> = 0, <code>01</code> = 1, <code>10</code> = 2, <code>11</code> = 3.</p>
-      <p><b>Objectif :</b> <b>Égal</b> vaut 1 si les deux nombres A et B sont égaux.</p>
-      <p>Exemple : A = 2 (A1 = 1, A0 = 0) et B = 2 (B1 = 1, B0 = 0) donnent Égal = 1. A = 2 et B = 3 donnent Égal = 0.</p>`,
-id: 'eq2', chapter: 'gates', title: 'Égalité 2 bits',
     inputs: ['A0', 'A1', 'B0', 'B1'], outputs: ['Égal'],
     pins: { ...bitPins('A', 2), ...bitPins('B', 2), Égal: '1 si le nombre A est égal au nombre B' },
     desc: `<p>Jusqu'ici, chaque fil valait juste 0 ou 1. En mettant plusieurs fils ensemble, on peut écrire
@@ -402,25 +318,11 @@ id: 'eq2', chapter: 'gates', title: 'Égalité 2 bits',
       <p><b>Objectif :</b> <b>Sup</b> vaut 1 si A est <b>strictement plus grand</b> que B. Si A = B, ou si A est
       plus petit, Sup vaut 0.</p>
       <p>Exemples : A = 2 et B = 1 donnent Sup = 1 ; A = 1 et B = 3 donnent 0 ; A = 2 et B = 2 donnent 0.</p>`,
-id: 'gt2', chapter: 'gates', title: 'Plus grand 2 bits',
-    inputs: ['A0', 'A1', 'B0', 'B1'], outputs: ['Sup'],
-    pins: { ...bitPins('A', 2), ...bitPins('B', 2), Sup: 'Supérieur : 1 si le nombre A est plus grand que le nombre B' },
-    desc: `<p>On reprend les nombres de 2 bits du niveau Égalité, mais on veut maintenant savoir lequel est le plus grand.</p>
-      <p>${NUM2}</p>
-      <p><b>Objectif :</b> <b>Sup</b> vaut 1 si A est <b>strictement plus grand</b> que B. Si A = B, ou si A est
-      plus petit, Sup vaut 0.</p>
-      <p>Exemples : A = 2 et B = 1 donnent Sup = 1 ; A = 1 et B = 3 donnent 0 ; A = 2 et B = 2 donnent 0.</p>`,
     hint: 'C\'est comme comparer 47 et 52 : on regarde d\'abord les dizaines, et on ne regarde les unités que si les dizaines sont égales. Ici, les « dizaines » sont A1 et B1.',
     tests: truthTable(4, ([a0, a1, b0, b1]) => [a0 + 2 * a1 > b0 + 2 * b1 ? 1 : 0]),
   });
   add({
     id: 'ge5', chapter: 'gates', title: 'Au moins 5',
-    inputs: ['N0', 'N1', 'N2'], outputs: ['Q'],
-    pins: { ...bitPins('N', 3), Q: '1 si N vaut 5, 6 ou 7' },
-    desc: `<p>${NUM3}</p>
-      <p>${TABLE3}</p>
-      <p><b>Objectif :</b> Q vaut 1 si N est <b>au moins égal à 5</b>, c'est-à-dire si N vaut 5, 6 ou 7.</p>`,
-id: 'ge5', chapter: 'gates', title: 'Au moins 5',
     inputs: ['N0', 'N1', 'N2'], outputs: ['Q'],
     pins: { ...bitPins('N', 3), Q: '1 si N vaut 5, 6 ou 7' },
     desc: `<p>${NUM3}</p>
@@ -436,23 +338,11 @@ id: 'ge5', chapter: 'gates', title: 'Au moins 5',
     desc: `<p>${NUM3}</p>
       <p>${TABLE3}</p>
       <p><b>Objectif :</b> <b>Premier</b> vaut 1 si N est un <b>nombre premier</b>, c'est-à-dire un nombre qui n'est divisible que par 1 et par lui-même. Entre 0 et 7, ce sont 2, 3, 5 et 7.</p>`,
-id: 'prime', chapter: 'gates', title: 'Nombre premier',
-    inputs: ['N0', 'N1', 'N2'], outputs: ['Premier'],
-    pins: { ...bitPins('N', 3), Premier: '1 si N vaut 2, 3, 5 ou 7' },
-    desc: `<p>${NUM3}</p>
-      <p>${TABLE3}</p>
-      <p><b>Objectif :</b> <b>Premier</b> vaut 1 si N est un <b>nombre premier</b>, c'est-à-dire un nombre qui n'est divisible que par 1 et par lui-même. Entre 0 et 7, ce sont 2, 3, 5 et 7.</p>`,
     hint: 'Écris les quatre nombres en binaire et cherche ce qu\'ils ont en commun.',
     tests: truthTable(3, (bits) => [[2, 3, 5, 7].includes(num(bits)) ? 1 : 0]),
   });
   add({
     id: 'mult3', chapter: 'gates', title: 'Multiple de 3',
-    inputs: ['N0', 'N1', 'N2'], outputs: ['Q'],
-    pins: { ...bitPins('N', 3), Q: '1 si N vaut 0, 3 ou 6' },
-    desc: `<p>${NUM3}</p>
-      <p>${TABLE3}</p>
-      <p><b>Objectif :</b> Q vaut 1 si N est un <b>multiple de 3</b> (un nombre de la table de 3), c'est-à-dire 0, 3 ou 6.</p>`,
-id: 'mult3', chapter: 'gates', title: 'Multiple de 3',
     inputs: ['N0', 'N1', 'N2'], outputs: ['Q'],
     pins: { ...bitPins('N', 3), Q: '1 si N vaut 0, 3 ou 6' },
     desc: `<p>${NUM3}</p>
@@ -505,39 +395,11 @@ id: 'mult3', chapter: 'gates', title: 'Multiple de 3',
       <p>Exemple : 1 + 1 + 1 = 3, qui s'écrit <code>11</code>, donc S = 1 et Co = 1.</p>
       <p>En mettant 8 additionneurs complets à la suite, la retenue de l'un entrant dans le suivant, on additionne
       des nombres de 0 à 255 : c'est ce que fait l'instruction <code>add</code> de ton processeur.</p>`,
-id: 'full_add', chapter: 'components', title: 'Additionneur complet', unlock: 'FULL_ADD',
-    inputs: ['A', 'B', 'Ci'], outputs: ['S', 'Co'],
-    pins: { A: 'premier bit à additionner', B: 'deuxième bit à additionner', Ci: 'Carry in : la retenue qui arrive de la colonne de droite', S: 'Somme : le chiffre de droite de A + B + Ci', Co: 'Carry out : la retenue à passer à la colonne de gauche' },
-    desc: `<p>Le demi-additionneur sait additionner une colonne… mais seulement la première. Dans une addition posée,
-      les colonnes suivantes doivent aussi ajouter <b>la retenue</b> qui arrive de la colonne de droite.</p>
-      <p>Exemple en binaire, 3 + 1, c'est-à-dire <code>11</code> + <code>01</code> :</p>
-      <pre class="addition">retenues   1 1
-             1 1
-           + 0 1
-           -----
-           1 0 0   (= 4)</pre>
-      <p>Dans la colonne du milieu, on additionne <b>trois</b> bits : 1 + 0 + la retenue 1.</p>
-      <p><b>Objectif :</b> additionne trois bits : A, B et la retenue qui arrive, <b>Ci</b> (<i>carry in</i>).
-      Le résultat va de 0 à 3 ; écris-le avec <b>S</b>, le chiffre qu'on pose, et <b>Co</b> (<i>carry out</i>),
-      la retenue à passer à la colonne de gauche.</p>
-      <p>Exemple : 1 + 1 + 1 = 3, qui s'écrit <code>11</code>, donc S = 1 et Co = 1.</p>
-      <p>En mettant 8 additionneurs complets à la suite, la retenue de l'un entrant dans le suivant, on additionne
-      des nombres de 0 à 255 : c'est ce que fait l'instruction <code>add</code> de ton processeur.</p>`,
     hint: 'Additionne d\'abord A et B, puis ajoute Ci au résultat. Tu as déjà le composant qui additionne deux bits. Reste à savoir quoi faire des deux retenues.',
     tests: truthTable(3, ([a, c, d]) => [(a + c + d) & 1, (a + c + d) >> 1]),
   });
   add({
     id: 'mux', chapter: 'components', title: 'Multiplexeur', unlock: 'MUX',
-    inputs: ['A', 'B', 'S'], outputs: ['Q'],
-    pins: { A: 'la valeur à recopier quand S = 0', B: 'la valeur à recopier quand S = 1', S: 'Sélecteur : la position de l\'aiguillage', Q: 'recopie A ou B selon S' },
-    desc: `<p>Un <b>multiplexeur</b> (ou « mux ») est un <b>aiguillage</b>, comme sur une voie ferrée : il a deux entrées
-      de données, A et B, et choisit laquelle laisser passer vers la sortie.</p>
-      <p>Le choix est fait par l'entrée <b>S</b> (sélecteur) :</p>
-      <ul><li>si S = 0, Q recopie A (et ignore B) ;</li>
-      <li>si S = 1, Q recopie B (et ignore A).</li></ul>
-      <p>Exemple : A = 1 et B = 0. Avec S = 0, Q = 1 ; avec S = 1, Q = 0.</p>
-      <p>Dans un processeur, les multiplexeurs servent partout à choisir : quel résultat garder, quel registre lire…</p>`,
-id: 'mux', chapter: 'components', title: 'Multiplexeur', unlock: 'MUX',
     inputs: ['A', 'B', 'S'], outputs: ['Q'],
     pins: { A: 'la valeur à recopier quand S = 0', B: 'la valeur à recopier quand S = 1', S: 'Sélecteur : la position de l\'aiguillage', Q: 'recopie A ou B selon S' },
     desc: `<p>Un <b>multiplexeur</b> (ou « mux ») est un <b>aiguillage</b>, comme sur une voie ferrée : il a deux entrées
@@ -576,18 +438,6 @@ id: 'mux', chapter: 'components', title: 'Multiplexeur', unlock: 'MUX',
       Sans DÉLAI, c'est interdit, car le circuit tournerait en rond instantanément.</p>
       <p><b>Objectif :</b> Q doit changer de valeur à chaque tick : 0, 1, 0, 1… (ou 1, 0, 1, 0…). Il n'y a pas
       d'entrée : le circuit doit battre tout seul. Utilise le bouton <b>Tick</b> pour faire avancer l'horloge.</p>`,
-id: 'osc', chapter: 'components', title: 'Oscillateur', unlock: 'DELAY', give: ['DELAY'],
-    inputs: [], outputs: ['Q'], sequential: true,
-    pins: { Q: 'doit changer de valeur à chaque tick : 0, 1, 0, 1…' },
-    desc: `<p>Jusqu'ici, tes circuits répondaient instantanément et oubliaient tout. Pour construire une mémoire,
-      il faut faire entrer le <b>temps</b>.</p>
-      <p>Le temps avance par <b>ticks</b>, comme les battements d'une horloge. Voici un nouveau composant, le
-      <b>DÉLAI</b> : à chaque tick, sa sortie prend la valeur qu'avait son entrée <i>au tick précédent</i>
-      (0 au tout début). Il « retient » donc une valeur pendant un tick.</p>
-      <p>Grâce à lui, tu peux aussi faire des <b>boucles</b> : renvoyer une sortie vers une entrée plus en amont.
-      Sans DÉLAI, c'est interdit, car le circuit tournerait en rond instantanément.</p>
-      <p><b>Objectif :</b> Q doit changer de valeur à chaque tick : 0, 1, 0, 1… (ou 1, 0, 1, 0…). Il n'y a pas
-      d'entrée : le circuit doit battre tout seul. Utilise le bouton <b>Tick</b> pour faire avancer l'horloge.</p>`,
     hint: 'Que se passe-t-il si un DÉLAI reçoit l\'inverse de sa propre sortie ?',
     tests: [{
       alts: [0, 1].map((first) => Array.from({ length: 8 }, (_, t) => ({ in: [], out: [(t + first) & 1] }))),
@@ -604,33 +454,12 @@ id: 'osc', chapter: 'components', title: 'Oscillateur', unlock: 'DELAY', give: [
       <li>Quand <b>Sauv</b> = 0, la cellule ignore Val et garde sa valeur, aussi longtemps qu'il le faut.</li></ul>
       <p>Exemple : au tick 0, Sauv = 1 et Val = 1, on enregistre 1. Au tick 1, Q vaut 1. Ensuite, même si Val
       repasse à 0, Q reste à 1 tant que Sauv reste à 0.</p>`,
-id: 'mem', chapter: 'components', title: 'Bit de mémoire', unlock: 'MEM',
-    inputs: ['Sauv', 'Val'], outputs: ['Q'], sequential: true,
-    pins: { Sauv: 'Sauvegarder : 1 = enregistrer Val à ce tick', Val: 'la valeur à enregistrer (0 ou 1)', Q: 'la valeur actuellement mémorisée' },
-    desc: `<p>Voici le niveau le plus important du chapitre : une <b>mémoire</b> d'un bit. Toute la mémoire d'un
-      ordinateur, des milliards de bits, est faite de cellules qui fonctionnent comme celle-ci.</p>
-      <p><b>Objectif :</b> Q affiche la valeur mémorisée (0 au départ).</p>
-      <ul><li>Quand <b>Sauv</b> = 1, la cellule enregistre la valeur de <b>Val</b>, qui apparaît sur Q au tick suivant.</li>
-      <li>Quand <b>Sauv</b> = 0, la cellule ignore Val et garde sa valeur, aussi longtemps qu'il le faut.</li></ul>
-      <p>Exemple : au tick 0, Sauv = 1 et Val = 1, on enregistre 1. Au tick 1, Q vaut 1. Ensuite, même si Val
-      repasse à 0, Q reste à 1 tant que Sauv reste à 0.</p>`,
     hint: 'Le DÉLAI retient une valeur pendant un tick. Pour qu\'il la garde plus longtemps, il faut lui renvoyer sa propre sortie… sauf quand on veut enregistrer. Quel composant sait choisir entre deux signaux ?',
     tests: [1, 2].map((seed) =>
       sequence((st, [save, v]) => [[st], save ? v : st], 0, randomBits(seed * 7, 12, 2))),
   });
   add({
     id: 'counter', chapter: 'components', title: 'Compteur 2 bits',
-    inputs: ['Inc'], outputs: ['B0', 'B1'], sequential: true,
-    pins: { Inc: 'Incrémenter : 1 = ajouter 1 au compteur à ce tick', ...bitPins('B', 2, 'du compteur') },
-    desc: `<p>Un <b>compteur</b> compte des événements : ici, combien de fois l'entrée <b>Inc</b> (incrémenter,
-      c'est-à-dire ajouter 1) a valu 1.</p>
-      <p>Le compteur part de 0. Sa valeur s'affiche en binaire sur deux sorties : <b>B0</b> compte pour 1 et
-      <b>B1</b> pour 2. Il compte donc de 0 à 3, puis repart à 0 (0, 1, 2, 3, 0, 1…), comme un compteur
-      kilométrique qui fait le tour.</p>
-      <p><b>Objectif :</b> à chaque tick où Inc = 1, ajoute 1 ; quand Inc = 0, ne change rien. Comme pour la
-      mémoire, le changement apparaît sur les sorties au tick <i>suivant</i>.</p>
-      <p>Exemple : avec Inc = 1, 1, 0, 1 aux ticks 0 à 3, la valeur affichée est 0, 1, 2, 2, puis 3 au tick 4.</p>`,
-id: 'counter', chapter: 'components', title: 'Compteur 2 bits',
     inputs: ['Inc'], outputs: ['B0', 'B1'], sequential: true,
     pins: { Inc: 'Incrémenter : 1 = ajouter 1 au compteur à ce tick', ...bitPins('B', 2, 'du compteur') },
     desc: `<p>Un <b>compteur</b> compte des événements : ici, combien de fois l'entrée <b>Inc</b> (incrémenter,
@@ -667,23 +496,6 @@ id: 'counter', chapter: 'components', title: 'Compteur 2 bits',
       <tr><td>3</td><td>somme de A + B + Ci</td><td>retenue</td></tr></table>
       <p>Exemple : Op1 = 1 et Op0 = 0 donnent op = 2, donc R = A XOR B et Co = 0.</p>
       <p>Huit de ces tranches côte à côte forment l'UAL 8 bits de l'ordinateur.</p>`,
-id: 'alu1', chapter: 'architecture', title: 'ALU 1 bit',
-    inputs: ['Op0', 'Op1', 'A', 'B', 'Ci'], outputs: ['R', 'Co'],
-    pins: { ...bitPins('Op', 2, 'du code d\'opération op'), A: 'premier bit à combiner', B: 'deuxième bit à combiner', Ci: 'Carry in : retenue entrante, utilisée seulement par l\'addition', R: 'Résultat de l\'opération choisie', Co: 'Carry out : retenue sortante de l\'addition (0 pour les autres opérations)' },
-    desc: `<p>Bienvenue dans l'<b>architecture</b> : tu vas assembler les pièces du processeur NANDO-8, celui que tu
-      programmes dans le chapitre Assemblage.</p>
-      <p>L'<b>UAL</b> (unité arithmétique et logique, <i>ALU</i> en anglais) est la calculatrice du processeur :
-      c'est elle qui exécute <code>and</code>, <code>or</code>, <code>add</code>… Elle reçoit deux nombres et un
-      <b>code d'opération</b> qui lui dit quel calcul faire.</p>
-      <p>Ici, on construit une tranche d'un bit. Op0 et Op1 forment le code op de 0 à 3 (Op0 compte pour 1,
-      Op1 pour 2) :</p>
-      <table class="mini"><tr><th>op</th><th>R</th><th>Co</th></tr>
-      <tr><td>0</td><td>A AND B</td><td>0</td></tr>
-      <tr><td>1</td><td>A OR B</td><td>0</td></tr>
-      <tr><td>2</td><td>A XOR B</td><td>0</td></tr>
-      <tr><td>3</td><td>somme de A + B + Ci</td><td>retenue</td></tr></table>
-      <p>Exemple : Op1 = 1 et Op0 = 0 donnent op = 2, donc R = A XOR B et Co = 0.</p>
-      <p>Huit de ces tranches côte à côte forment l'UAL 8 bits de l'ordinateur.</p>`,
     hint: 'Calcule les quatre résultats en même temps, puis utilise des multiplexeurs pour ne garder que le bon.',
     tests: truthTable(5, ([o0, o1, a, c, ci]) => {
       const op = o0 + 2 * o1;
@@ -696,26 +508,6 @@ id: 'alu1', chapter: 'architecture', title: 'ALU 1 bit',
   });
   add({
     id: 'cond', chapter: 'architecture', title: 'Unité de condition',
-    inputs: ['C0', 'C1', 'C2', 'Z', 'N'], outputs: ['Saut'],
-    pins: { ...bitPins('C', 3, 'du code de condition c'), Z: 'Zéro : vaut 1 quand R3 = 0', N: 'Négatif : vaut 1 quand R3 < 0', Saut: '1 = le processeur doit sauter' },
-    desc: `<p>Quand ton programme fait <code>jz</code>, <code>jgt</code>… c'est cette unité qui décide si le processeur
-      saute ou non.</p>
-      <p>Elle regarde le registre R3 à travers deux signaux : <b>Z</b> (zéro) vaut 1 si R3 = 0, et <b>N</b>
-      (négatif) vaut 1 si R3 est négatif. Ils ne valent jamais 1 en même temps.</p>
-      <p>C0, C1 et C2 forment le code de condition c de 0 à 7 (C0 compte pour 1, C1 pour 2, C2 pour 4). Il vient
-      de l'instruction de saut :</p>
-      <table class="mini"><tr><th>c</th><th>instruction</th><th>saute si R3…</th></tr>
-      <tr><td>0</td><td><code>nop</code></td><td>jamais</td></tr>
-      <tr><td>1</td><td><code>jz</code></td><td>= 0</td></tr>
-      <tr><td>2</td><td><code>jlt</code></td><td>&lt; 0</td></tr>
-      <tr><td>3</td><td><code>jle</code></td><td>≤ 0</td></tr>
-      <tr><td>4</td><td><code>jmp</code></td><td>toujours</td></tr>
-      <tr><td>5</td><td><code>jnz</code></td><td>≠ 0</td></tr>
-      <tr><td>6</td><td><code>jge</code></td><td>≥ 0</td></tr>
-      <tr><td>7</td><td><code>jgt</code></td><td>&gt; 0</td></tr></table>
-      <p><b>Objectif :</b> <b>Saut</b> vaut 1 si la condition demandée est vraie.</p>
-      <p>Exemple : c = 1 (<code>jz</code>) et Z = 1 donnent Saut = 1 ; c = 1 et Z = 0 donnent Saut = 0.</p>`,
-id: 'cond', chapter: 'architecture', title: 'Unité de condition',
     inputs: ['C0', 'C1', 'C2', 'Z', 'N'], outputs: ['Saut'],
     pins: { ...bitPins('C', 3, 'du code de condition c'), Z: 'Zéro : vaut 1 quand R3 = 0', N: 'Négatif : vaut 1 quand R3 < 0', Saut: '1 = le processeur doit sauter' },
     desc: `<p>Quand ton programme fait <code>jz</code>, <code>jgt</code>… c'est cette unité qui décide si le processeur
@@ -765,36 +557,12 @@ id: 'cond', chapter: 'architecture', title: 'Unité de condition',
       <ul><li><b>Charger</b> = 1 : enregistre Val, qui sera mémorisée au tick suivant (comme Sauv dans le bit de mémoire) ;</li>
       <li><b>Lire</b> = 1 : Q montre la valeur mémorisée. Si Lire = 0, Q vaut 0 pour ne pas brouiller le bus.</li></ul>
       <p>Exemple : on charge 1. Tant que Lire = 0, Q vaut 0 ; dès que Lire = 1, Q affiche 1.</p>`,
-id: 'reg', chapter: 'architecture', title: 'Registre',
-    inputs: ['Charger', 'Lire', 'Val'], outputs: ['Q'], sequential: true,
-    pins: { Charger: '1 = enregistrer Val à ce tick', Lire: '1 = montrer la valeur mémorisée sur Q', Val: 'la valeur à enregistrer (0 ou 1)', Q: 'la valeur mémorisée si Lire = 1, sinon 0' },
-    desc: `<p>Les <b>registres</b> (R0 à R5) sont les cases de mémoire rapide du processeur, celles que tu manipules
-      avec <code>mov</code>.</p>
-      <p>Tous les registres sont branchés sur les mêmes fils, appelés le <b>bus</b>. Si plusieurs registres
-      envoyaient leur valeur en même temps, ce serait la cacophonie : chacun ne doit « parler » que quand on le
-      lui demande.</p>
-      <p><b>Objectif :</b> c'est une mémoire d'un bit, avec deux commandes :</p>
-      <ul><li><b>Charger</b> = 1 : enregistre Val, qui sera mémorisée au tick suivant (comme Sauv dans le bit de mémoire) ;</li>
-      <li><b>Lire</b> = 1 : Q montre la valeur mémorisée. Si Lire = 0, Q vaut 0 pour ne pas brouiller le bus.</li></ul>
-      <p>Exemple : on charge 1. Tant que Lire = 0, Q vaut 0 ; dès que Lire = 1, Q affiche 1.</p>`,
     hint: 'Tu as déjà le composant qui mémorise. Pour « couper » la sortie, pense au gardien AND.',
     tests: [5, 6].map((seed) =>
       sequence((st, [load, read, v]) => [[read ? st : 0], load ? v : st], 0, randomBits(seed * 13, 14, 3))),
   });
   add({
     id: 'pc', chapter: 'architecture', title: 'Compteur de programme',
-    inputs: ['Écrire', 'V0', 'V1'], outputs: ['P0', 'P1'], sequential: true,
-    pins: { Écrire: '1 = sauter : la prochaine adresse sera V au lieu de P + 1', ...bitPins('V', 2, 'de l\'adresse de saut V'), ...bitPins('P', 2, 'de l\'adresse actuelle P') },
-    desc: `<p>Le <b>compteur de programme</b> (PC) retient l'adresse, c'est-à-dire le numéro de ligne, de l'instruction
-      en cours. C'est le « PC » que tu vois avancer quand tu fais <b>⏭ Pas</b> dans le chapitre Assemblage.</p>
-      <p>Les sorties P0 et P1 affichent l'adresse actuelle P (P0 compte pour 1, P1 pour 2). Ici, le programme
-      n'a que 4 lignes : P va de 0 à 3.</p>
-      <p><b>Objectif :</b></p>
-      <ul><li>normalement, à chaque tick, on passe à la ligne suivante : P devient P + 1 (et après 3, on revient à 0) ;</li>
-      <li>mais si <b>Écrire</b> = 1, c'est un <b>saut</b> : au tick suivant, P prend la valeur V donnée par V0 et V1
-      (V0 compte pour 1, V1 pour 2).</li></ul>
-      <p>Exemples : P = 1 et Écrire = 0, donc au tick suivant P = 2. P = 1, Écrire = 1 et V = 3, donc au tick suivant P = 3.</p>`,
-id: 'pc', chapter: 'architecture', title: 'Compteur de programme',
     inputs: ['Écrire', 'V0', 'V1'], outputs: ['P0', 'P1'], sequential: true,
     pins: { Écrire: '1 = sauter : la prochaine adresse sera V au lieu de P + 1', ...bitPins('V', 2, 'de l\'adresse de saut V'), ...bitPins('P', 2, 'de l\'adresse actuelle P') },
     desc: `<p>Le <b>compteur de programme</b> (PC) retient l'adresse, c'est-à-dire le numéro de ligne, de l'instruction
@@ -890,11 +658,6 @@ id: 'pc', chapter: 'architecture', title: 'Compteur de programme',
       <p>Exemples : 7 donne 1, 10 donne 0, 255 donne 1.</p>
       <p>Il n'y a pas d'instruction pour diviser. Mais tu as des opérations bit par bit (<code>and</code>,
       <code>or</code>, <code>xor</code>…) qui agissent sur chaque colonne de bits, comme tes portes.</p>`,
-id: 'parity', chapter: 'assembly', title: 'Pair ou impair',
-    desc: `<p><b>Objectif :</b> pour chaque entrée, écris <b>1</b> si elle est impaire, et <b>0</b> si elle est paire.</p>
-      <p>Exemples : 7 donne 1, 10 donne 0, 255 donne 1.</p>
-      <p>Il n'y a pas d'instruction pour diviser. Mais tu as des opérations bit par bit (<code>and</code>,
-      <code>or</code>, <code>xor</code>…) qui agissent sur chaque colonne de bits, comme tes portes.</p>`,
     hint: 'Écris quelques nombres pairs et impairs en binaire : qu\'est-ce qui les distingue ?',
     tests: asmTests(3, (r) => {
       const xs = Array.from({ length: 8 }, () => randInt(r, 0, 255));
@@ -921,12 +684,6 @@ id: 'parity', chapter: 'assembly', title: 'Pair ou impair',
   });
   addAsm({
     id: 'max', chapter: 'assembly', group: 2, title: 'Le plus grand',
-    desc: `<p><b>Objectif :</b> les entrées arrivent <b>deux par deux</b> : a, puis b. Pour chaque paire, écris le plus
-      grand des deux (une seule sortie par paire). Si a = b, écris cette valeur. Les valeurs vont de 0 à 100.</p>
-      <p>Exemple : les paires (30, 70) et (12, 5) donnent les sorties 70 puis 12.</p>
-      <p>Rappel : chaque <code>mov in …</code> lit un seul nombre, le suivant dans la file. Les registres R4 et R5
-      sont libres pour ranger des valeurs.</p>`,
-id: 'max', chapter: 'assembly', group: 2, title: 'Le plus grand',
     desc: `<p><b>Objectif :</b> les entrées arrivent <b>deux par deux</b> : a, puis b. Pour chaque paire, écris le plus
       grand des deux (une seule sortie par paire). Si a = b, écris cette valeur. Les valeurs vont de 0 à 100.</p>
       <p>Exemple : les paires (30, 70) et (12, 5) donnent les sorties 70 puis 12.</p>
