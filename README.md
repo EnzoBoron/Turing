@@ -43,7 +43,9 @@ ou pour garder une copie de sécurité.
   ses propres **Entrées** et **Sorties** (double-clic pour les renommer) ; **Table de vérité** calcule le
   résultat pour toutes les combinaisons des entrées câblées, et la **batterie de tests** du panneau de
   gauche vérifie les sorties attendues qu'on a écrites soi-même. **Mes constructions** enregistre le circuit
-  (et ses tests) sous un nom, pour le rouvrir, le renommer ou le supprimer plus tard.
+  (et ses tests) sous un nom, pour le rouvrir, le renommer ou le supprimer plus tard. Chaque construction
+  enregistrée apparaît aussi dans la palette, rubrique **Mes constructions** : elle se pose comme un
+  composant, avec ses entrées et sorties, même si elle contient de la mémoire ou d'autres constructions.
 - **⊳ Symboles** dessine les portes (AND, OR, NOT, XOR…) avec leur symbole officiel, comme dans les manuels.
 - **📋 Copier le schéma** affiche le circuit en texte, une ligne par porte (`MUX1 = MUX(A: AND1, B: OR1, S: Op0)`),
   pratique pour le partager ou demander de l'aide.

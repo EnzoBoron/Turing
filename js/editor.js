@@ -74,8 +74,9 @@
       }
       const n = Math.max(def.inputs.length, def.outputs.length, 1);
       const h = n * PIN_GAP + 10;
-      const named = def.inputs.length > 1 || def.outputs.length > 1 || c.type === 'DELAY' || c.type === 'MEM';
-      const w = named ? 96 : 70;
+      const named = def.inputs.length > 1 || def.outputs.length > 1 || c.type === 'DELAY' || c.type === 'MEM' || !!def.custom;
+      // Une construction réutilisée s'élargit selon son nom.
+      const w = def.custom ? Math.min(220, Math.max(96, 44 + def.label.length * 7.5)) : named ? 96 : 70;
       const side = (count, x) => {
         const off = (h - (count - 1) * PIN_GAP) / 2;
         return Array.from({ length: count }, (_, i) => ({ x, y: c.y + off + i * PIN_GAP }));
@@ -680,11 +681,13 @@
       else {
         ctx.beginPath();
         ctx.roundRect(c.x, c.y, g.w, g.h, io ? 16 : 6);
-        ctx.fillStyle = io ? C.io : def.stateful ? C.state : C.comp;
+        ctx.fillStyle = io ? C.io : def.stateful || def.hasState ? C.state : C.comp;
         ctx.fill();
         ctx.lineWidth = selected ? 2.5 : 1.5;
         ctx.strokeStyle = inCycle ? C.err : selected ? C.sel : C.compBorder;
+        if (def.custom && !selected) ctx.setLineDash([5, 3]); // construction du joueur : bord pointillé
         ctx.stroke();
+        ctx.setLineDash([]);
 
         ctx.textAlign = 'center';
         ctx.textBaseline = 'middle';
@@ -713,7 +716,7 @@
           ctx.fillText(def.label, c.x + g.w / 2, c.y + g.h / 2);
           ctx.font = '10px system-ui, sans-serif';
           ctx.fillStyle = C.muted;
-          if (def.inputs.length > 1 || def.outputs.length > 1 || def.stateful) {
+          if (def.inputs.length > 1 || def.outputs.length > 1 || def.stateful || def.custom) {
             ctx.textAlign = 'left';
             def.inputs.forEach((n, i) => ctx.fillText(n, g.ins[i].x + 8, g.ins[i].y));
             ctx.textAlign = 'right';

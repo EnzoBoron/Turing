@@ -2,7 +2,7 @@
 (function () {
   'use strict';
 
-  const { COMPONENTS, verifyCircuit, circuitCost, describeCircuit, truthTableOf } = window.Circuits;
+  const { COMPONENTS, getDef, verifyCircuit, circuitCost, describeCircuit, truthTableOf, setCustoms } = window.Circuits;
   const { CHAPTERS, LEVELS } = window.Levels;
   const Nando = window.Nando;
 
@@ -320,6 +320,7 @@
         pal.appendChild(b);
       }
     }
+    if (lvl.sandbox) refreshCustoms();
     for (const type of paletteFor(lvl)) {
       const def = COMPONENTS[type];
       const b = document.createElement('button');
@@ -329,6 +330,7 @@
       b.addEventListener('click', () => editor.addComponent(type));
       pal.appendChild(b);
     }
+    if (lvl.sandbox) appendCustomPalette(pal);
 
     let circuit = save.circuits[lvl.id];
     if (!circuit || !validCircuit(circuit, lvl)) circuit = lvl.sandbox ? { components: [], wires: [], tests: [] } : window.initialCircuit(lvl);
@@ -452,6 +454,61 @@
     return b ? !sameCircuit(b.circuit, editor.circuit) : editor.circuit.components.length > 0;
   };
 
+  // Les constructions enregistrées deviennent des composants « U:<id> » du bac à sable.
+  function refreshCustoms() { setCustoms(builds()); }
+
+  // Vrai si la construction `id` utilise `target`, directement ou à travers une autre.
+  function buildUses(id, target, seen = new Set()) {
+    if (id === target) return true;
+    if (seen.has(id)) return false;
+    seen.add(id);
+    const item = builds()[id];
+    return !!item && item.circuit.components.some((c) => String(c.type).startsWith('U:') && buildUses(c.type.slice(2), target, seen));
+  }
+
+  function appendCustomPalette(pal) {
+    const list = Object.entries(builds()).sort((p, q) => p[1].name.localeCompare(q[1].name));
+    const head = document.createElement('div');
+    head.className = 'pal-head';
+    head.textContent = 'Mes constructions';
+    pal.appendChild(head);
+    if (!list.length) {
+      const note = document.createElement('p');
+      note.className = 'pal-note';
+      note.textContent = 'Enregistre une construction : elle apparaîtra ici, prête à être posée comme un composant.';
+      pal.appendChild(note);
+      return;
+    }
+    for (const [id, item] of list) {
+      // On ne pose pas une construction dans elle-même (ni dans une construction qu'elle contient).
+      if (save.currentBuild && buildUses(id, save.currentBuild)) continue;
+      const def = getDef('U:' + id);
+      const b = document.createElement('button');
+      b.className = 'pal-item custom' + (def.hasState ? ' stateful' : '');
+      b.innerHTML = `<b>${esc(item.name)}</b><small>${def.inputs.length}→${def.outputs.length}</small>`;
+      b.title = `Ajouter « ${item.name} » (${def.cost} NAND)`;
+      b.addEventListener('click', () => {
+        if (!def.inputs.length && !def.outputs.length) {
+          showToast(`« ${item.name} » n'a ni entrée ni sortie : ajoute-lui des Entrées et des Sorties pour la réutiliser.`);
+          return;
+        }
+        editor.addComponent('U:' + id);
+      });
+      pal.appendChild(b);
+    }
+  }
+
+  // Après un enregistrement, un renommage ou une suppression : définitions et palette à jour.
+  function buildsChanged() {
+    persist();
+    refreshCustoms();
+    const pal = $('c-palette');
+    pal.querySelectorAll('.pal-head, .pal-note, .pal-item.custom').forEach((el) => el.remove());
+    appendCustomPalette(pal);
+    editor.recompile();
+    renderBuilds();
+  }
+
   function renderBuilds() {
     const b = currentBuild();
     const status = unsaved() ? '<span class="build-dirty">• modifications non enregistrées</span>'
@@ -491,9 +548,8 @@
     if (!id) id = 'b' + Date.now().toString(36);
     builds()[id] = { name: res.name, circuit: clone(editor.circuit), updated: Date.now() };
     save.currentBuild = id;
-    persist();
     showToast(`« ${res.name} » est enregistrée.`);
-    renderBuilds();
+    buildsChanged();
   }
 
   // Remplace le circuit du bac à sable, après accord si le travail en cours n'est pas enregistré.
@@ -513,9 +569,8 @@
       if (!item) { saveBuildAs(); return; }
       item.circuit = clone(editor.circuit);
       item.updated = Date.now();
-      persist();
       showToast(`« ${item.name} » est enregistrée.`);
-      renderBuilds();
+      buildsChanged();
     } else if (b.id === 'b-saveas') {
       saveBuildAs();
     } else if (b.id === 'b-new') {
@@ -529,15 +584,17 @@
       if (!res) return;
       if (res.clash) { showToast(`Le nom « ${res.name} » est déjà pris.`); return; }
       item.name = res.name;
-      persist();
-      renderBuilds();
+      buildsChanged();
     } else if (b.dataset.remove) {
-      const item = builds()[b.dataset.remove];
-      if (!item || !confirm(`Supprimer la construction « ${item.name} » ?`)) return;
-      delete builds()[b.dataset.remove];
-      if (save.currentBuild === b.dataset.remove) save.currentBuild = null;
-      persist();
-      renderBuilds();
+      const id = b.dataset.remove;
+      const item = builds()[id];
+      if (!item) return;
+      const users = Object.entries(builds()).filter(([other]) => other !== id && buildUses(other, id)).map(([, o]) => `« ${o.name} »`);
+      const warn = users.length ? `\nElle est utilisée dans ${users.join(', ')} : ces blocs ne fonctionneront plus.` : '';
+      if (!confirm(`Supprimer la construction « ${item.name} » ?${warn}`)) return;
+      delete builds()[id];
+      if (save.currentBuild === id) save.currentBuild = null;
+      buildsChanged();
     }
   });
 
@@ -580,7 +637,9 @@
   function validCircuit(c, lvl) {
     try {
       const allowed = new Set(paletteFor(lvl).concat(['IN', 'OUT']));
-      if (!c.components.every((o) => allowed.has(o.type))) return false;
+      // Dans le bac à sable, les constructions du joueur (« U:… ») sont aussi permises.
+      const ok = (o) => allowed.has(o.type) || (lvl.sandbox && String(o.type).startsWith('U:'));
+      if (!c.components.every(ok)) return false;
       if (lvl.sandbox) return Array.isArray(c.wires);
       const ins = c.components.filter((o) => o.type === 'IN').length;
       const outs = c.components.filter((o) => o.type === 'OUT').length;

@@ -56,10 +56,81 @@
     },
   };
 
+  // Relais interne : remplace les entrées et sorties d'une construction réutilisée.
+  const PORT = { label: 'PORT', inputs: [''], outputs: [''], cost: 0, fn: ([a]) => [a ? 1 : 0] };
+
+  // Constructions du joueur réutilisées comme composants : type « U:<id> ».
+  // Leur définition se calcule à partir du circuit enregistré.
+  let customs = {};
+  const customDefs = new Map();
+  function setCustoms(map) {
+    customs = map || {};
+    customDefs.clear();
+  }
+
+  function customDef(type) {
+    const build = customs[type.slice(2)];
+    if (!build || !build.circuit || !Array.isArray(build.circuit.components)) {
+      return { label: '(supprimée)', inputs: [], outputs: [], custom: { components: [], wires: [] }, missing: true };
+    }
+    const io = (t) => build.circuit.components.filter((c) => c.type === t).sort((p, q) => p.idx - q.idx).map((c) => c.name || '');
+    const def = { label: build.name, inputs: io('IN'), outputs: io('OUT'), custom: build.circuit, cost: 0 };
+    // Mise en cache avant le calcul du coût : une construction qui se contiendrait ne boucle pas.
+    customDefs.set(type, def);
+    try {
+      const sub = circuitCost(build.circuit);
+      def.cost = sub.nand;
+      def.delays = sub.delays;
+      def.hasState = build.circuit.components.some((c) => {
+        const d = getDef(c.type);
+        return d.stateful || d.hasState;
+      });
+    } catch (e) { /* composant inconnu à l'intérieur : coût laissé à 0 */ }
+    return def;
+  }
+
   function getDef(type) {
     const def = COMPONENTS[type];
-    if (!def) throw new Error('Composant inconnu : ' + type);
-    return def;
+    if (def) return def;
+    if (type === 'PORT') return PORT;
+    if (typeof type === 'string' && type.startsWith('U:')) return customDefs.get(type) || customDef(type);
+    throw new Error('Composant inconnu : ' + type);
+  }
+
+  // Remplace chaque construction réutilisée par son circuit intérieur (récursivement).
+  // Ses entrées et sorties deviennent des relais nommés « id/… » ; `ports` dit, pour
+  // chaque patte de la construction, quel relais la porte.
+  function flatten(circuit, stack = []) {
+    const components = [];
+    const views = [];
+    const ports = new Map();
+    const wires = [];
+    for (const c of circuit.components) {
+      const def = getDef(c.type);
+      if (!def.custom) { components.push(c); continue; }
+      views.push(c);
+      if (def.missing) continue;
+      if (stack.includes(c.type)) throw new Error(`La construction « ${def.label} » se contient elle-même.`);
+      const inner = flatten(def.custom, stack.concat(c.type));
+      const pre = c.id + '/';
+      for (const ic of inner.components) {
+        const copy = { ...ic, id: pre + ic.id };
+        if (ic.type === 'IN' || ic.type === 'OUT') {
+          copy.type = 'PORT';
+          ports.set(`${c.id}:${ic.type === 'IN' ? 'in' : 'out'}:${ic.idx}`, copy.id);
+        }
+        components.push(copy);
+      }
+      for (const w of inner.wires) wires.push({ from: { c: pre + w.from.c, p: w.from.p }, to: { c: pre + w.to.c, p: w.to.p } });
+    }
+    const isView = new Set(views.map((c) => c.id));
+    for (const w of circuit.wires) {
+      const from = isView.has(w.from.c) ? ports.get(`${w.from.c}:out:${w.from.p}`) : null;
+      const to = isView.has(w.to.c) ? ports.get(`${w.to.c}:in:${w.to.p}`) : null;
+      if ((isView.has(w.from.c) && !from) || (isView.has(w.to.c) && !to)) continue; // patte disparue
+      wires.push({ from: from ? { c: from, p: 0 } : w.from, to: to ? { c: to, p: 0 } : w.to });
+    }
+    return { components, wires, views, ports };
   }
 
   // Simulateur : compile le circuit en un ordre d'évaluation topologique.
@@ -73,14 +144,32 @@
     }
 
     compile() {
-      const comps = this.circuit.components;
+      let flat;
+      try {
+        flat = flatten(this.circuit);
+      } catch (e) {
+        const views = this.circuit.components.filter((c) => getDef(c.type).custom);
+        const ids = new Set(views.map((c) => c.id));
+        flat = {
+          components: this.circuit.components.filter((c) => !ids.has(c.id)),
+          wires: this.circuit.wires.filter((w) => !ids.has(w.from.c) && !ids.has(w.to.c)),
+          views, ports: new Map(),
+        };
+        this.flattenError = e.message;
+      }
+      // Les constructions réutilisées restent en fin de liste, sans calcul propre :
+      // on y recopie les valeurs de leurs relais pour que l'éditeur les affiche.
+      this.views = flat.views;
+      this.ports = flat.ports;
+      this.realCount = flat.components.length;
+      const comps = this.comps = flat.components.concat(flat.views);
       this.index = new Map(comps.map((c, i) => [c.id, i]));
       this.defs = comps.map((c) => getDef(c.type));
       this.sources = comps.map((c, i) => this.defs[i].inputs.map(() => null));
-      for (const w of this.circuit.wires) {
+      for (const w of flat.wires) {
         const fi = this.index.get(w.from.c);
         const ti = this.index.get(w.to.c);
-        if (fi === undefined || ti === undefined) continue;
+        if (fi === undefined || ti === undefined || w.to.p >= this.sources[ti].length) continue;
         this.sources[ti][w.to.p] = { c: fi, p: w.from.p };
       }
       this.inputComps = [];
@@ -91,7 +180,7 @@
       });
 
       // Tri topologique (Kahn) des composants combinatoires.
-      const isComb = (i) => comps[i].type !== 'IN' && !this.defs[i].stateful;
+      const isComb = (i) => i < this.realCount && comps[i].type !== 'IN' && !this.defs[i].stateful;
       const indeg = comps.map(() => 0);
       const succ = comps.map(() => []);
       comps.forEach((c, i) => {
@@ -115,14 +204,16 @@
       }
       const combCount = comps.filter((c, i) => isComb(i)).length;
       if (this.order.length !== combCount) {
-        this.cycle = comps.filter((c, i) => isComb(i) && indeg[i] > 0).map((c) => c.id);
+        // Une boucle à l'intérieur d'une construction est signalée sur la construction elle-même.
+        this.cycle = [...new Set(comps.filter((c, i) => isComb(i) && indeg[i] > 0).map((c) => String(c.id).split('/')[0]))];
         this.error = 'Boucle combinatoire : un signal dépend de lui-même sans passer par un composant à mémoire (DÉLAI).';
       }
-      this.stateful = comps.map((c, i) => i).filter((i) => this.defs[i].stateful);
+      this.stateful = comps.map((c, i) => i).filter((i) => i < this.realCount && this.defs[i].stateful);
+      if (this.flattenError) this.error = this.flattenError;
     }
 
     reset() {
-      const comps = this.circuit.components;
+      const comps = this.comps;
       this.states = comps.map((c, i) => (this.defs[i].stateful ? this.defs[i].init : null));
       this.values = comps.map((c, i) => this.defs[i].outputs.map(() => 0));
       this.inputsOf = comps.map((c, i) => this.defs[i].inputs.map(() => 0));
@@ -146,6 +237,18 @@
         if (def.fn) this.values[i] = def.fn(ins);
       }
       for (const i of this.stateful) this.inputsOf[i] = this.readInputs(i);
+      for (const c of this.views) {
+        const i = this.index.get(c.id);
+        const relay = (side, p) => this.index.get(this.ports.get(`${c.id}:${side}:${p}`));
+        this.inputsOf[i] = this.defs[i].inputs.map((_, p) => {
+          const k = relay('in', p);
+          return k === undefined ? 0 : this.inputsOf[k][0];
+        });
+        this.values[i] = this.defs[i].outputs.map((_, p) => {
+          const k = relay('out', p);
+          return k === undefined ? 0 : this.values[k][0];
+        });
+      }
     }
 
     outputs(count) {
@@ -199,6 +302,7 @@
       const def = getDef(c.type);
       if (def.io) continue;
       if (c.type === 'DELAY') delays++;
+      delays += def.delays || 0;
       nand += def.cost || 0;
     }
     return { nand, delays };
@@ -264,7 +368,7 @@
     return lines.join('\n');
   }
 
-  const api = { COMPONENTS, getDef, Simulator, verifyCircuit, circuitCost, describeCircuit, truthTableOf };
+  const api = { COMPONENTS, getDef, Simulator, verifyCircuit, circuitCost, describeCircuit, truthTableOf, setCustoms };
   global.Circuits = api;
   if (typeof module !== 'undefined') module.exports = api;
 })(typeof window !== 'undefined' ? window : globalThis);

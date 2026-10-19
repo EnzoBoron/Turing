@@ -316,6 +316,38 @@ async function main() {
   await page.waitForFunction(() => window.game.level && window.game.level.id === 'sandbox');
   check('les constructions sont gardées', (await page.textContent('#c-builds .build-current')).includes('XOR maison'));
 
+  console.log('Réutiliser une construction');
+  await page.click('#b-new');
+  await page.evaluate(() => {
+    const ed = window.game.editor;
+    const a = ed.addIO('IN'), b = ed.addIO('IN'), q = ed.addIO('OUT');
+    const x = ed.addComponent('XOR');
+    ed.circuit.wires.push({ from: { c: a.id, p: 0 }, to: { c: x.id, p: 0 } }, { from: { c: b.id, p: 0 }, to: { c: x.id, p: 1 } },
+      { from: { c: x.id, p: 0 }, to: { c: q.id, p: 0 } });
+    ed.changed();
+  });
+  page.once('dialog', (d) => d.accept('Ou exclusif'));
+  await page.click('#b-save');
+  check('une construction enregistrée apparaît dans la palette… sauf dans elle-même', !(await page.$('.pal-item.custom:has(b:text-is("Ou exclusif"))')));
+  await page.click('#b-new');
+  await page.click('.pal-item.custom:has(b:text-is("Ou exclusif"))');
+  const placed = await page.evaluate(() => {
+    const ed = window.game.editor;
+    const u = ed.circuit.components.at(-1);
+    const a = ed.addIO('IN'), b = ed.addIO('IN'), q = ed.addIO('OUT');
+    ed.circuit.wires.push({ from: { c: a.id, p: 0 }, to: { c: u.id, p: 0 } }, { from: { c: b.id, p: 0 }, to: { c: u.id, p: 1 } },
+      { from: { c: u.id, p: 0 }, to: { c: q.id, p: 0 } });
+    ed.changed();
+    return u.type;
+  });
+  check('elle se pose comme un composant', placed.startsWith('U:'));
+  await page.click('#c-verify');
+  const reused = await page.$$eval('#c-results tbody tr', (trs) => trs.map((tr) => [...tr.children].map((td) => td.textContent).join('')));
+  check('et elle calcule comme son circuit', reused.join(' ') === '000 011 101 110', reused.join(' '));
+  check('son coût compte dans le total', (await page.textContent('#c-stats')).includes('4 NAND'));
+  const described = await page.evaluate(() => window.Circuits.describeCircuit(window.game.level, window.game.editor.circuit));
+  check('le schéma copié la nomme', described.includes('Ouexclusif1 = Ou exclusif('), described);
+
   console.log('Fichier de sauvegarde');
   await page.click('#home-btn');
   const [download] = await Promise.all([page.waitForEvent('download'), page.click('#export-save')]);

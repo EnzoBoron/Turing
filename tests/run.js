@@ -3,7 +3,7 @@
 // Lancement : node tests/run.js
 'use strict';
 
-const { verifyCircuit, getDef, describeCircuit, truthTableOf } = require('../js/components.js');
+const { verifyCircuit, getDef, describeCircuit, truthTableOf, setCustoms, Simulator, circuitCost } = require('../js/components.js');
 const { LEVELS } = require('../js/levels.js');
 const Nando = require('../js/cpu.js');
 
@@ -495,6 +495,49 @@ console.log('Table de vérité libre');
   const t = truthTableOf(lvl, c);
   check('seules les entrées et sorties câblées comptent', t.inputs.join() === '0,2' && t.outputs.join() === '0', JSON.stringify(t));
   check('les lignes donnent le XOR', t.rows.map((r) => r.out[0]).join('') === '0110', JSON.stringify(t.rows));
+}
+
+console.log('Constructions réutilisées');
+{
+  // Une construction : ses entrées et sorties portent un nom et un numéro, comme dans le bac à sable.
+  const asBuild = (name, inputs, outputs, gates, outs) => {
+    const c = build({ inputs, outputs }, gates, outs);
+    c.components.forEach((o) => {
+      if (o.type === 'IN') o.name = inputs[o.idx];
+      if (o.type === 'OUT') o.name = outputs[o.idx];
+    });
+    return { name, circuit: c };
+  };
+  const xor = asBuild('XOR maison', ['X', 'Y'], ['Z'], {
+    n: ['NAND', 'X', 'Y'], a: ['NAND', 'X', 'n'], b: ['NAND', 'Y', 'n'], q: ['NAND', 'a', 'b'],
+  }, ['q']);
+  const bit = asBuild('Bit', ['Sv', 'V'], ['Q'], { m: ['MEM', 'Sv', 'V'] }, ['m']);
+  const par = asBuild('Parité 3', ['A', 'B', 'C'], ['P'], { x1: ['U:xor', 'A', 'B'], x2: ['U:xor', 'x1', 'C'] }, ['x2']);
+  setCustoms({ xor, bit, par });
+
+  check('la définition reprend les entrées et sorties nommées', getDef('U:xor').inputs.join() === 'X,Y' && getDef('U:xor').outputs.join() === 'Z');
+  check('le coût d\'une construction est celui de son circuit', getDef('U:xor').cost === 4 && circuitCost(par.circuit).nand === 8);
+  const lvl = { inputs: ['A', 'B', 'C'], outputs: ['P'] };
+  const top = build(lvl, { p: ['U:par', 'A', 'B', 'C'] }, ['p']);
+  const t = truthTableOf(lvl, top);
+  check('constructions imbriquées : parité de 3 bits', t.rows.map((r) => r.out[0]).join('') === '01101001', JSON.stringify(t));
+  const sim = new Simulator(top);
+  sim.evaluate([1, 1, 0]);
+  check('l\'éditeur lit les pattes d\'une construction', sim.values[sim.index.get('p')][0] === 0 && sim.inputsOf[sim.index.get('p')].join() === '1,1,0');
+
+  const memLvl = { inputs: ['S', 'V'], outputs: ['Q'] };
+  const memTop = build(memLvl, { b: ['U:bit', 'S', 'V'] }, ['b']);
+  const ms = new Simulator(memTop);
+  ms.evaluate([1, 1]); ms.tick(); ms.evaluate([0, 0]);
+  const kept = ms.outputs(1)[0];
+  ms.tick(); ms.evaluate([0, 0]);
+  check('une construction avec mémoire garde sa valeur', kept === 1 && ms.outputs(1)[0] === 1);
+
+  setCustoms({ loop: asBuild('Boucle', ['A'], ['Q'], { l: ['U:loop', 'A'] }, ['l']) });
+  const bad = new Simulator(build({ inputs: ['A'], outputs: ['Q'] }, { l: ['U:loop', 'A'] }, ['l']));
+  check('une construction qui se contient est refusée', /se contient/.test(bad.error || ''), bad.error);
+  setCustoms({});
+  check('une construction supprimée ne casse rien', !new Simulator(top).error && getDef('U:par').missing);
 }
 
 console.log('Composants débloqués');

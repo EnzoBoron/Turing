@@ -125,7 +125,11 @@ button.link { background: none; border: none; padding: 0; text-decoration: under
 }
 .tests-edit td button:hover { background: var(--panel-2); }
 .tests-actions { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 8px; }
-.pal-item.io { border-style: dashed; }
+.pal-item.io, .pal-item.custom { border-style: dashed; }
+.pal-item.custom { grid-column: span 2; }
+.pal-item.custom b { max-width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.pal-head { grid-column: 1 / -1; margin-top: 8px; font-size: 12px; font-weight: 700; letter-spacing: .06em; text-transform: uppercase; color: var(--muted); }
+.pal-note { grid-column: 1 / -1; margin: 0; color: var(--muted); font-size: 12px; }
 .truth-note { color: var(--muted); font-size: 13px; margin: 4px 0 8px; }
 .chapter {
   background: var(--panel); border: 1px solid var(--border); border-radius: 14px;
