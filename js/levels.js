@@ -702,6 +702,13 @@ id: 'alu1', chapter: 'architecture', title: 'ALU 1 bit',
       saute ou non.</p>
       <p>Elle regarde le registre R3 à travers deux signaux : <b>Z</b> (zéro) vaut 1 si R3 = 0, et <b>N</b>
       (négatif) vaut 1 si R3 est négatif. Ils ne valent jamais 1 en même temps.</p>
+      <p><b>R3</b> est un <b>registre</b> : une petite case mémoire du processeur qui contient un nombre (tu
+      construiras les registres un peu plus loin). Ici, tu ne vois jamais R3 lui-même : Z et N le résument, et il
+      n'y a que trois cas possibles.</p>
+      <table class="mini"><tr><th>R3</th><th>Z</th><th>N</th></tr>
+      <tr><td>= 0</td><td>1</td><td>0</td></tr>
+      <tr><td>&lt; 0</td><td>0</td><td>1</td></tr>
+      <tr><td>&gt; 0</td><td>0</td><td>0</td></tr></table>
       <p>C0, C1 et C2 forment le code de condition c de 0 à 7 (C0 compte pour 1, C1 pour 2, C2 pour 4). Il vient
       de l'instruction de saut :</p>
       <table class="mini"><tr><th>c</th><th>instruction</th><th>saute si R3…</th></tr>
@@ -722,6 +729,13 @@ id: 'cond', chapter: 'architecture', title: 'Unité de condition',
       saute ou non.</p>
       <p>Elle regarde le registre R3 à travers deux signaux : <b>Z</b> (zéro) vaut 1 si R3 = 0, et <b>N</b>
       (négatif) vaut 1 si R3 est négatif. Ils ne valent jamais 1 en même temps.</p>
+      <p><b>R3</b> est un <b>registre</b> : une petite case mémoire du processeur qui contient un nombre (tu
+      construiras les registres un peu plus loin). Ici, tu ne vois jamais R3 lui-même : Z et N le résument, et il
+      n'y a que trois cas possibles.</p>
+      <table class="mini"><tr><th>R3</th><th>Z</th><th>N</th></tr>
+      <tr><td>= 0</td><td>1</td><td>0</td></tr>
+      <tr><td>&lt; 0</td><td>0</td><td>1</td></tr>
+      <tr><td>&gt; 0</td><td>0</td><td>0</td></tr></table>
       <p>C0, C1 et C2 forment le code de condition c de 0 à 7 (C0 compte pour 1, C1 pour 2, C2 pour 4). Il vient
       de l'instruction de saut :</p>
       <table class="mini"><tr><th>c</th><th>instruction</th><th>saute si R3…</th></tr>
