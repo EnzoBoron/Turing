@@ -691,19 +691,24 @@
   }
 
   // Le presse-papiers moderne n'existe qu'en contexte sécurisé (https ou localhost) :
-  // ailleurs, on copie la sélection de la zone de texte du schéma.
+  // ailleurs, on copie le texte d'une zone de saisie posée hors de l'écran. Ce second
+  // moyen marche tant qu'il suit directement le clic.
   function copyText(text) {
     if (navigator.clipboard && window.isSecureContext) {
-      return navigator.clipboard.writeText(text).catch(() => copySelection());
+      return navigator.clipboard.writeText(text).catch(() => copyByTextarea(text));
     }
-    return copySelection();
+    return copyByTextarea(text);
   }
-  function copySelection() {
-    const area = $('copy-text');
-    area.focus();
+  function copyByTextarea(text) {
+    const area = document.createElement('textarea');
+    area.value = text;
+    area.setAttribute('readonly', '');
+    Object.assign(area.style, { position: 'fixed', top: '-1000px', left: '0', opacity: '0' });
+    document.body.appendChild(area);
     area.select();
     let ok = false;
     try { ok = document.execCommand('copy'); } catch (e) { ok = false; }
+    area.remove();
     return ok ? Promise.resolve() : Promise.reject(new Error('copie refusée'));
   }
 
@@ -764,13 +769,20 @@
   $('c-symbols').onclick = () => { save.symbols = !save.symbols; persist(); applySymbols(); };
   applySymbols();
 
-  // Le texte reste affiché : si le navigateur refuse la copie, on peut toujours le sélectionner.
+  // Copie directe ; si le navigateur refuse, la fenêtre montre le texte à copier à la main.
   $('c-copy').onclick = () => {
-    $('copy-text').value = describeCircuit(current, editor.circuit);
-    $('copy-msg').textContent = 'Copie-le, puis colle-le où tu veux avec Ctrl+V.';
-    $('copy-msg').className = 'copy-msg';
-    $('copy-modal').classList.remove('hidden');
-    $('copy-do').focus();
+    const text = describeCircuit(current, editor.circuit);
+    copyText(text).then(
+      () => showToast('📋 Schéma copié : colle-le où tu veux avec Ctrl+V.'),
+      () => {
+        $('copy-text').value = text;
+        $('copy-msg').textContent = 'Ton navigateur a refusé la copie automatique : sélectionne le texte et fais Ctrl+C.';
+        $('copy-msg').className = 'copy-msg bad';
+        $('copy-modal').classList.remove('hidden');
+        $('copy-text').focus();
+        $('copy-text').select();
+      },
+    );
   };
   $('copy-do').onclick = () => {
     const area = $('copy-text');

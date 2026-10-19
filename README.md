@@ -49,7 +49,7 @@ ou pour garder une copie de sécurité.
   enregistrée apparaît aussi dans la palette, rubrique **Mes constructions** : elle se pose comme un
   composant, avec ses entrées et sorties, même si elle contient de la mémoire ou d'autres constructions.
 - **⊳ Symboles** dessine les portes (AND, OR, NOT, XOR…) avec leur symbole officiel, comme dans les manuels.
-- **📋 Copier le schéma** affiche le circuit en texte, une ligne par porte (`MUX1 = MUX(A: AND1, B: OR1, S: Op0)`),
+- **📋 Copier le schéma** copie directement le circuit en texte, une ligne par porte (`MUX1 = MUX(A: AND1, B: OR1, S: Op0)`),
   pratique pour le partager ou demander de l'aide.
 - **✎ Crayon** (en haut) : dessine par-dessus tout l'écran, avec plusieurs couleurs, une gomme et
   <kbd>Ctrl</kbd>+<kbd>Z</kbd> ; <kbd>Échap</kbd> range le crayon. Chaque écran garde son dessin, et chaque
