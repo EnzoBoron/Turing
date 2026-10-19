@@ -266,6 +266,20 @@ async function main() {
   await page.evaluate(() => { document.getElementById('screen-menu').scrollTop = 0; });
   await page.setViewportSize({ width: 1280, height: 800 });
 
+  // Un trait d'avant l'accroche, posé en travers du circuit : il est rattaché au circuit.
+  await page.waitForTimeout(300);
+  await page.evaluate(() => {
+    const g = JSON.parse(localStorage.getItem('turing-save-v1'));
+    g.drawings.not = [{ c: '#e03131', p: [700, 420, 900, 420] }];
+    localStorage.setItem('turing-save-v1', JSON.stringify(g));
+  });
+  await page.reload();
+  await open('not');
+  await page.waitForTimeout(300);
+  const adopted = await page.evaluate(() => JSON.parse(localStorage.getItem('turing-save-v1')).drawings.not);
+  check('un ancien trait sur le circuit y est rattaché', adopted.length === 1 && adopted[0].a === 'circuit');
+  check('et passe sous le schéma, au même endroit', !(await inkAt(800, 420)) && isRed(await circuitPixel(800, 420)));
+
   console.log('Brouillon');
   await open('and');
   await page.fill('#c-notes', 'A B | Q\n0 0 | 0');

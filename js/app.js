@@ -259,6 +259,31 @@
       return { c: String(s.c), p: s.p.map((v, i) => (i % 2 ? v - top : v)), a: 'scroll:screen-menu' };
     }));
   }
+  // Les traits tracés avant l'accroche étaient fixes à l'écran. À l'ouverture d'un niveau,
+  // on les rattache à ce qu'ils recouvrent : le circuit (dans sa vue actuelle) ou le panneau.
+  function adoptOldStrokes(sideId, circuit) {
+    const old = drawLayer.strokes.filter((st) => !st.a && st.p.length >= 2);
+    if (!old.length) return;
+    const side = $(sideId);
+    const sr = side.getBoundingClientRect();
+    const cr = circuit && editor ? editor.canvas.getBoundingClientRect() : null;
+    const inside = (r, x, y) => r && x >= r.left && x <= r.right && y >= r.top && y <= r.bottom;
+    for (const st of old) {
+      const x0 = st.p[0] - scrollX;
+      const y0 = st.p[1] - scrollY;
+      if (inside(cr, x0, y0)) {
+        const { x: vx, y: vy, scale } = editor.view;
+        st.p = st.p.map((v, i) => (i % 2 ? (v - scrollY - cr.top - vy) / scale : (v - scrollX - cr.left - vx) / scale));
+        st.a = 'circuit';
+      } else if (inside(sr, x0, y0)) {
+        st.p = st.p.map((v, i) => (i % 2 ? v - scrollY - sr.top + side.scrollTop : v - scrollX - sr.left + side.scrollLeft));
+        st.a = 'scroll:' + sideId;
+      }
+    }
+    save.drawings[drawKey()] = drawLayer.strokes;
+    persist();
+  }
+
   function setDrawing(on) {
     document.body.classList.toggle('drawing', on);
     $('draw-tools').classList.toggle('hidden', !on);
@@ -427,6 +452,7 @@
       onDraw: () => drawLayer.draw(),
       underlay: (ctx, scale) => drawLayer.paint(ctx, 'circuit', scale),
     });
+    adoptOldStrokes('c-side', true);
     drawLayer.draw();
     if (lvl.sandbox) refreshSandbox();
   }
@@ -929,6 +955,7 @@
     code.value = save.programs[lvl.id] != null ? save.programs[lvl.id] : (lvl.starter || '');
     asm = { testIdx: 0 };
     show('asm');
+    adoptOldStrokes('a-side', false);
     reassemble();
   }
 
