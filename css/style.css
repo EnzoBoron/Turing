@@ -108,6 +108,16 @@ button.link { background: none; border: none; padding: 0; text-decoration: under
   padding: 10px 14px; border-radius: 12px; text-align: left;
 }
 .sandbox-btn span { color: var(--muted); font-size: 13px; }
+.sandbox-tests h4 { margin: 12px 0 4px; }
+.muted-note { color: var(--muted); font-size: 13px; margin: 4px 0 8px; }
+.tests-edit td { padding: 0; }
+.tests-edit td button {
+  width: 100%; min-width: 28px; padding: 3px 6px; border: 0; border-radius: 0; background: transparent;
+  font: inherit; font-family: ui-monospace, monospace; cursor: pointer;
+}
+.tests-edit td button:hover { background: var(--panel-2); }
+.tests-actions { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 8px; }
+.pal-item.io { border-style: dashed; }
 .truth-note { color: var(--muted); font-size: 13px; margin: 4px 0 8px; }
 .chapter {
   background: var(--panel); border: 1px solid var(--border); border-radius: 14px;

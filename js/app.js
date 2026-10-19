@@ -43,14 +43,14 @@
   // Bac à sable : un circuit libre, sans objectif, avec tous les composants.
   const SANDBOX = {
     id: 'sandbox', type: 'circuit', sandbox: true, sequential: true, title: 'Bac à sable',
-    inputs: ['A', 'B', 'C', 'D'], outputs: ['Q0', 'Q1', 'Q2', 'Q3'], tests: [],
-    pins: { A: 'entrée libre', B: 'entrée libre', C: 'entrée libre', D: 'entrée libre',
-      Q0: 'sortie libre', Q1: 'sortie libre', Q2: 'sortie libre', Q3: 'sortie libre' },
-    desc: `<p>Ici, pas d'objectif ni de test : tous les composants sont disponibles, pour t'exercer et
+    inputs: [], outputs: [], tests: [], // entrées et sorties : celles que le joueur a placées
+    desc: `<p>Ici, pas d'objectif imposé : tous les composants sont disponibles, pour t'exercer et
       essayer tes idées.</p>
-      <p>Branche ce que tu veux entre les entrées A à D et les sorties Q0 à Q3. Le bouton
-      <b>Table de vérité</b> calcule le résultat de ton circuit pour toutes les combinaisons des entrées
-      que tu as câblées.</p>`,
+      <p>Place tes propres <b>Entrées</b> et <b>Sorties</b> depuis la palette ; double-clic dessus pour
+      les renommer. Le bouton <b>Table de vérité</b> calcule ce que fait ton circuit pour toutes les
+      combinaisons des entrées câblées.</p>
+      <p>Pour te lancer un défi, écris ta <b>batterie de tests</b> ci-dessous : les sorties que tu
+      attends pour chaque combinaison d'entrées, puis lance-les.</p>`,
   };
   const chapterTitle = (lvl) => (lvl.sandbox ? 'Entraînement' : chapterOf(lvl).title);
 
@@ -301,13 +301,24 @@
     $('c-chapter').textContent = chapterTitle(lvl);
     $('c-verify').textContent = lvl.sandbox ? '▦ Table de vérité' : '✔ Vérifier';
     $('c-title').textContent = lvl.title;
-    $('c-desc').innerHTML = lvl.desc + circuitGuide(lvl);
+    $('c-desc').innerHTML = lvl.desc + (lvl.sandbox ? '' : circuitGuide(lvl));
+    $('c-tests').classList.toggle('hidden', !lvl.sandbox);
     openNotes('c', lvl);
     $('c-results').classList.add('hidden');
     document.querySelector('#screen-circuit .seq-only').classList.toggle('hidden', !lvl.sequential);
 
     const pal = $('c-palette');
     pal.innerHTML = '';
+    if (lvl.sandbox) {
+      for (const [type, label] of [['IN', 'Entrée'], ['OUT', 'Sortie']]) {
+        const b = document.createElement('button');
+        b.className = 'pal-item io';
+        b.innerHTML = `<b>${label}</b><small>${type === 'IN' ? '0→1' : '1→0'}</small>`;
+        b.title = 'Ajouter une ' + label.toLowerCase();
+        b.addEventListener('click', () => editor.addIO(type));
+        pal.appendChild(b);
+      }
+    }
     for (const type of paletteFor(lvl)) {
       const def = COMPONENTS[type];
       const b = document.createElement('button');
@@ -319,18 +330,107 @@
     }
 
     let circuit = save.circuits[lvl.id];
-    if (!circuit || !validCircuit(circuit, lvl)) circuit = window.initialCircuit(lvl);
+    if (!circuit || !validCircuit(circuit, lvl)) circuit = lvl.sandbox ? { components: [], wires: [], tests: [] } : window.initialCircuit(lvl);
     else circuit = JSON.parse(JSON.stringify(circuit));
 
     show('circuit');
     editor = new window.CircuitEditor($('c-canvas'), {
       level: lvl,
       circuit,
-      onChange: (c) => { save.circuits[lvl.id] = c; persist(); },
+      onChange: (c) => {
+        save.circuits[lvl.id] = c;
+        persist();
+        if (lvl.sandbox) renderSandboxTests();
+      },
       onSim: updateCircuitStatus,
       onMessage: showToast,
       symbols: !!save.symbols,
+      freeIO: !!lvl.sandbox,
     });
+    if (lvl.sandbox) renderSandboxTests();
+  }
+
+  // ------------------------------------------------- Tests du bac à sable
+  // Chaque ligne fixe une valeur par entrée et la valeur attendue de chaque sortie,
+  // rangées par identifiant de composant : renommer ou déplacer une entrée ne casse rien.
+
+  const ioOf = (type) => editor.circuit.components.filter((c) => c.type === type).sort((p, q) => p.idx - q.idx);
+  const sandboxTests = () => {
+    if (!Array.isArray(editor.circuit.tests)) editor.circuit.tests = [];
+    return editor.circuit.tests;
+  };
+  const saveTests = () => { save.circuits[SANDBOX.id] = editor.circuit; persist(); renderSandboxTests(); };
+
+  function renderSandboxTests() {
+    const ins = ioOf('IN');
+    const outs = ioOf('OUT');
+    const tests = sandboxTests();
+    let html = '<h4>Batterie de tests</h4>';
+    if (!ins.length || !outs.length) {
+      $('c-tests').innerHTML = html + '<p class="muted-note">Place au moins une Entrée et une Sortie pour écrire des tests.</p>';
+      return;
+    }
+    html += '<p class="muted-note">Une ligne = une combinaison d\'entrées et les sorties que tu attends. Clique sur une case pour passer de 0 à 1.</p>';
+    if (tests.length) {
+      html += '<div class="table-scroll"><table class="truth tests-edit"><thead><tr>';
+      ins.forEach((c) => { html += `<th class="in">${esc(c.name)}</th>`; });
+      outs.forEach((c) => { html += `<th class="exp">${esc(c.name)}</th>`; });
+      html += '<th></th></tr></thead><tbody>';
+      tests.forEach((t, r) => {
+        html += '<tr>';
+        ins.forEach((c) => { html += `<td class="in"><button data-row="${r}" data-side="in" data-id="${esc(c.id)}">${t.in[c.id] ? 1 : 0}</button></td>`; });
+        outs.forEach((c) => { html += `<td class="exp"><button data-row="${r}" data-side="out" data-id="${esc(c.id)}">${t.out[c.id] ? 1 : 0}</button></td>`; });
+        html += `<td><button class="link danger" data-del="${r}" title="Supprimer cette ligne">×</button></td></tr>`;
+      });
+      html += '</tbody></table></div>';
+    }
+    html += `<div class="tests-actions">
+      <button id="t-add">+ Ligne</button>
+      <button id="t-all" title="Une ligne pour chaque combinaison des entrées (les lignes déjà écrites sont gardées)">Toutes les combinaisons</button>
+      ${tests.length ? '<button class="primary" id="t-run">▶ Lancer les tests</button>' : ''}
+    </div>`;
+    $('c-tests').innerHTML = html;
+  }
+
+  $('c-tests').addEventListener('click', (e) => {
+    const b = e.target.closest('button');
+    if (!b || !editor) return;
+    const tests = sandboxTests();
+    if (b.dataset.row != null) {
+      const t = tests[+b.dataset.row];
+      t[b.dataset.side][b.dataset.id] = t[b.dataset.side][b.dataset.id] ? 0 : 1;
+      saveTests();
+    } else if (b.dataset.del != null) {
+      tests.splice(+b.dataset.del, 1);
+      saveTests();
+    } else if (b.id === 't-add') {
+      tests.push({ in: {}, out: {} });
+      saveTests();
+    } else if (b.id === 't-all') {
+      const ins = ioOf('IN');
+      const key = (t) => ins.map((c) => (t.in[c.id] ? 1 : 0)).join('');
+      const known = new Map(tests.map((t) => [key(t), t]));
+      const rows = [];
+      for (let n = 0; n < 1 << ins.length; n++) {
+        const t = { in: {}, out: {} };
+        ins.forEach((c, k) => { t.in[c.id] = (n >> (ins.length - 1 - k)) & 1; });
+        rows.push(known.get(key(t)) || t);
+      }
+      tests.splice(0, tests.length, ...rows);
+      saveTests();
+    } else if (b.id === 't-run') {
+      runSandboxTests();
+    }
+  });
+
+  function runSandboxTests() {
+    const ins = ioOf('IN');
+    const outs = ioOf('OUT');
+    const lvl = {
+      inputs: ins.map((c) => c.name), outputs: outs.map((c) => c.name),
+      tests: sandboxTests().map((t) => ({ steps: [{ in: ins.map((c) => (t.in[c.id] ? 1 : 0)), out: outs.map((c) => (t.out[c.id] ? 1 : 0)) }] })),
+    };
+    renderCircuitResults(lvl, verifyCircuit(lvl, editor.circuit));
   }
 
   // Le presse-papiers moderne n'existe qu'en contexte sécurisé (https ou localhost) :
@@ -363,6 +463,7 @@
     try {
       const allowed = new Set(paletteFor(lvl).concat(['IN', 'OUT']));
       if (!c.components.every((o) => allowed.has(o.type))) return false;
+      if (lvl.sandbox) return Array.isArray(c.wires);
       const ins = c.components.filter((o) => o.type === 'IN').length;
       const outs = c.components.filter((o) => o.type === 'OUT').length;
       return ins === lvl.inputs.length && outs === lvl.outputs.length;

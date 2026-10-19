@@ -248,18 +248,49 @@ async function main() {
   await page.click('#home-btn');
   await page.click('#sandbox-btn');
   await page.waitForFunction(() => window.game.level && window.game.level.id === 'sandbox');
-  check('le bac à sable propose tous les composants', (await page.$$('.pal-item')).length === await page.evaluate(() => Object.values(window.Circuits.COMPONENTS).filter((d) => !d.io).length));
+  check('le bac à sable démarre vide', (await page.evaluate(() => window.game.editor.circuit.components.length)) === 0);
+  check('tous les composants, plus Entrée et Sortie', (await page.$$('.pal-item')).length === 2 + await page.evaluate(() => Object.values(window.Circuits.COMPONENTS).filter((d) => !d.io).length));
+  await page.click('.pal-item:has(b:text-is("Entrée"))');
+  await page.click('.pal-item:has(b:text-is("Entrée"))');
+  await page.click('.pal-item:has(b:text-is("Sortie"))');
+  const io = await page.evaluate(() => window.game.editor.circuit.components.map((c) => c.id + ':' + c.name));
+  check('les entrées et sorties placées sont nommées', io.map((x) => x.split(':')[1]).join() === 'E1,E2,S1', io.join());
+  const [e1, e2, s1] = io.map((x) => x.split(':')[0]);
   const sx = await addGate('XOR');
-  await drag(await pin('in0', 'out'), await pin(sx, 'in', 0));
-  await drag(await pin('in1', 'out'), await pin(sx, 'in', 1));
-  await drag(await pin(sx, 'out'), await pin('out0', 'in'));
+  await drag(await pin(e1, 'out'), await pin(sx, 'in', 0));
+  await drag(await pin(e2, 'out'), await pin(sx, 'in', 1));
+  await drag(await pin(sx, 'out'), await pin(s1, 'in'));
   await page.click('#c-verify');
   const table = await page.$$eval('#c-results tbody tr', (trs) => trs.map((tr) => [...tr.children].map((td) => td.textContent).join('')));
   check('la table de vérité est calculée', table.join(' ') === '000 011 101 110', table.join(' '));
+
+  await page.click('#t-all');
+  check('une ligne de test par combinaison', (await page.$$('.tests-edit tbody tr')).length === 4);
+  await page.click('.tests-edit tbody tr:nth-child(2) td.exp button');
+  await page.click('.tests-edit tbody tr:nth-child(3) td.exp button');
+  await page.click('#t-run');
+  check('la batterie de tests passe', (await page.textContent('#c-results .verdict')).includes('Tous les tests passent'));
   check('pas de victoire dans le bac à sable', !(await page.isVisible('#modal')));
+  await page.click('.tests-edit tbody tr:nth-child(4) td.exp button');
+  await page.click('#t-run');
+  check('un test faux est signalé', (await page.textContent('#c-results .verdict')).includes('1 ligne incorrecte'));
+
+  const box1 = await page.evaluate((id) => {
+    const ed = window.game.editor;
+    const c = ed.circuit.components.find((o) => o.id === id);
+    const r = ed.canvas.getBoundingClientRect();
+    return { x: r.left + ed.view.x + (c.x + 12) * ed.view.scale, y: r.top + ed.view.y + (c.y + 16) * ed.view.scale };
+  }, s1);
+  page.once('dialog', (d) => d.accept('Q'));
+  await page.mouse.dblclick(box1.x, box1.y);
+  check('double-clic renomme une sortie', (await page.evaluate(() => window.game.level.outputs.join())) === 'Q');
+  check('les tests suivent le nouveau nom', (await page.textContent('.tests-edit thead')).includes('Q'));
+
   await page.reload();
   await page.waitForFunction(() => window.game.level && window.game.level.id === 'sandbox');
-  check('le circuit du bac à sable est gardé', (await wires()).length === 3);
+  check('circuit et tests sont gardés', (await wires()).length === 3 && (await page.$$('.tests-edit tbody tr')).length === 4);
+  await page.evaluate((id) => { const ed = window.game.editor; ed.selection = { kind: 'comp', id }; ed.deleteSelection(); }, e1);
+  check('supprimer une entrée renumérote les autres', (await page.evaluate(() => window.game.level.inputs.join())) === 'E2');
 
   console.log('Fichier de sauvegarde');
   await page.click('#home-btn');

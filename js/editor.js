@@ -19,8 +19,12 @@
   };
   const BUBBLE_R = 4;
 
+  // Bac à sable : le joueur place lui-même ses entrées (E1, E2…) et ses sorties (S1, S2…).
+  const MAX_IO = 8;
+  const IO_PREFIX = { IN: 'E', OUT: 'S' };
+
   class CircuitEditor {
-    constructor(canvas, { level, circuit, onChange, onSim, onMessage, symbols }) {
+    constructor(canvas, { level, circuit, onChange, onSim, onMessage, symbols, freeIO }) {
       this.canvas = canvas;
       this.ctx = canvas.getContext('2d');
       this.level = level;
@@ -30,10 +34,12 @@
       this.onMessage = onMessage || (() => {});
       this.view = { x: 0, y: 0, scale: 1 };
       this.symbols = !!symbols;
+      this.freeIO = !!freeIO;
       this.selection = null;
       this.drag = null;
       this.hoverPin = null;
       this.inputVals = level.inputs.map(() => 0);
+      this.syncIO();
       this.tickCount = 0;
       this.nextId = 1 + Math.max(0, ...circuit.components.map((c) => parseInt(String(c.id).replace(/\D/g, ''), 10) || 0));
 
@@ -162,6 +168,7 @@
         wheel: (e) => this.wheel(e),
         menu: (e) => this.contextMenu(e),
         key: (e) => this.key(e),
+        dblclick: (e) => this.rename(e),
         resize: () => this.resize(),
       };
       cv.addEventListener('pointerdown', this.handlers.down);
@@ -170,6 +177,7 @@
       cv.addEventListener('pointercancel', this.handlers.up);
       cv.addEventListener('wheel', this.handlers.wheel, { passive: false });
       cv.addEventListener('contextmenu', this.handlers.menu);
+      cv.addEventListener('dblclick', this.handlers.dblclick);
       window.addEventListener('keydown', this.handlers.key);
       this.ro = new ResizeObserver(this.handlers.resize);
       this.ro.observe(cv.parentElement);
@@ -186,6 +194,7 @@
       cv.removeEventListener('pointercancel', this.handlers.up);
       cv.removeEventListener('wheel', this.handlers.wheel);
       cv.removeEventListener('contextmenu', this.handlers.menu);
+      cv.removeEventListener('dblclick', this.handlers.dblclick);
       window.removeEventListener('keydown', this.handlers.key);
       this.themeQuery.removeEventListener('change', this.themeHandler);
       this.ro.disconnect();
@@ -336,11 +345,60 @@
       return `L'entrée ${def.inputs[pin.p]} de ${def.label}`;
     }
 
-    addComponent(type) {
+    // Numérote les entrées et sorties placées par le joueur et met à jour leurs noms
+    // dans le niveau, en gardant la valeur de chaque entrée.
+    syncIO() {
+      if (!this.freeIO) return;
+      const comps = this.circuit.components;
+      const vals = new Map(comps.filter((c) => c.type === 'IN').map((c) => [c.id, this.inputVals[c.idx] || 0]));
+      for (const type of ['IN', 'OUT']) {
+        const list = comps.filter((c) => c.type === type).sort((p, q) => (p.idx ?? 99) - (q.idx ?? 99));
+        list.forEach((c, k) => {
+          c.idx = k;
+          if (!c.name) c.name = this.freeName(type);
+        });
+        this.level[type === 'IN' ? 'inputs' : 'outputs'] = list.map((c) => c.name);
+      }
+      this.inputVals = comps.filter((c) => c.type === 'IN').sort((p, q) => p.idx - q.idx).map((c) => vals.get(c.id) || 0);
+    }
+
+    freeName(type) {
+      const used = new Set(this.circuit.components.map((c) => c.name));
+      let k = 1;
+      while (used.has(IO_PREFIX[type] + k)) k++;
+      return IO_PREFIX[type] + k;
+    }
+
+    addIO(type) {
+      if (this.circuit.components.filter((c) => c.type === type).length >= MAX_IO) {
+        this.onMessage(`Pas plus de ${MAX_IO} ${type === 'IN' ? 'entrées' : 'sorties'} dans le bac à sable.`);
+        return null;
+      }
+      return this.addComponent(type, { idx: 99, name: this.freeName(type) });
+    }
+
+    // Double-clic sur une entrée ou une sortie du bac à sable : on la renomme.
+    rename(e) {
+      if (!this.freeIO) return;
+      const c = this.compAt(this.toWorld(e));
+      if (!c || (c.type !== 'IN' && c.type !== 'OUT')) return;
+      const answer = window.prompt('Nouveau nom (4 caractères au plus) :', c.name);
+      if (answer == null) return;
+      const name = answer.trim().slice(0, 4);
+      if (!name) return;
+      if (this.circuit.components.some((o) => o !== c && o.name === name)) {
+        this.onMessage(`Le nom « ${name} » est déjà pris.`);
+        return;
+      }
+      c.name = name;
+      this.changed();
+    }
+
+    addComponent(type, extra = {}) {
       const r = this.canvas.getBoundingClientRect();
       const cx = (r.width / 2 - this.view.x) / this.view.scale;
       const cy = (r.height / 2 - this.view.y) / this.view.scale;
-      const c = { id: 'c' + this.nextId++, type, x: 0, y: 0 };
+      const c = { id: 'c' + this.nextId++, type, x: 0, y: 0, ...extra };
       const margin = 30;
       const overlaps = () => {
         const g = this.geom(c);
@@ -379,7 +437,7 @@
         this.circuit.wires.splice(s.index, 1);
       } else {
         const c = this.circuit.components.find((o) => o.id === s.id);
-        if (!c || c.type === 'IN' || c.type === 'OUT') return;
+        if (!c || (!this.freeIO && (c.type === 'IN' || c.type === 'OUT'))) return;
         this.circuit.components = this.circuit.components.filter((o) => o.id !== s.id);
         this.circuit.wires = this.circuit.wires.filter((w) => w.from.c !== s.id && w.to.c !== s.id);
       }
@@ -388,14 +446,17 @@
     }
 
     clear() {
-      this.circuit.components = this.circuit.components.filter((c) => c.type === 'IN' || c.type === 'OUT');
+      this.circuit.components = this.freeIO ? [] : this.circuit.components.filter((c) => c.type === 'IN' || c.type === 'OUT');
       this.circuit.wires = [];
       this.selection = null;
       this.changed();
     }
 
     changed(structural = true) {
-      if (structural) this.recompile();
+      if (structural) {
+        this.syncIO();
+        this.recompile();
+      }
       this.onChange(this.circuit);
       this.draw();
     }
