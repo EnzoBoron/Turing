@@ -292,6 +292,30 @@ async function main() {
   await page.evaluate((id) => { const ed = window.game.editor; ed.selection = { kind: 'comp', id }; ed.deleteSelection(); }, e1);
   check('supprimer une entrée renumérote les autres', (await page.evaluate(() => window.game.level.inputs.join())) === 'E2');
 
+  console.log('Constructions');
+  check('une construction non enregistrée est signalée', (await page.textContent('#c-builds')).includes('non enregistrées'));
+  page.once('dialog', (d) => d.accept('Mon XOR'));
+  await page.click('#b-save');
+  check('enregistrer demande un nom puis l\'affiche', (await page.textContent('#c-builds .build-current')).includes('Mon XOR') && (await page.textContent('#c-builds')).includes('✓ enregistrée'));
+  const xorWires = (await wires()).length;
+  await page.click('#b-new');
+  check('« Nouvelle » repart d\'un bac à sable vide', (await page.evaluate(() => window.game.editor.circuit.components.length)) === 0);
+  await page.click('.pal-item:has(b:text-is("Entrée"))');
+  page.once('dialog', (d) => d.accept('Brouillon'));
+  await page.click('#b-saveas');
+  check('deux constructions dans la liste', (await page.$$('.build-list li')).length === 2);
+  await page.click('.build-open:text-is("Mon XOR")');
+  check('ouvrir une construction recharge son circuit', (await wires()).length === xorWires && (await page.$$('.tests-edit tbody tr')).length === 4);
+  page.once('dialog', (d) => d.accept('XOR maison'));
+  await page.click('.build-list li.current [data-rename]');
+  check('renommer une construction', (await page.textContent('#c-builds .build-current')).includes('XOR maison'));
+  page.once('dialog', (d) => d.accept());
+  await page.click('.build-list li:not(.current) [data-remove]');
+  check('supprimer une construction', (await page.$$('.build-list li')).length === 1);
+  await page.reload();
+  await page.waitForFunction(() => window.game.level && window.game.level.id === 'sandbox');
+  check('les constructions sont gardées', (await page.textContent('#c-builds .build-current')).includes('XOR maison'));
+
   console.log('Fichier de sauvegarde');
   await page.click('#home-btn');
   const [download] = await Promise.all([page.waitForEvent('download'), page.click('#export-save')]);
@@ -302,6 +326,7 @@ async function main() {
   check('l\'export contient le circuit', Array.isArray(data.circuits.and && data.circuits.and.components));
   check('l\'export contient les dessins', data.drawings && data.drawings.and && data.drawings.and.length === 1);
   check('l\'export contient les brouillons', data.notes && data.notes.sum === 'compteur dans R4');
+  check('l\'export contient les constructions', Object.values(data.builds || {}).some((b) => b.name === 'XOR maison'));
 
   page.once('dialog', (d) => d.accept());
   await page.click('#reset-progress');

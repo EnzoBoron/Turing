@@ -303,6 +303,7 @@
     $('c-title').textContent = lvl.title;
     $('c-desc').innerHTML = lvl.desc + (lvl.sandbox ? '' : circuitGuide(lvl));
     $('c-tests').classList.toggle('hidden', !lvl.sandbox);
+    $('c-builds').classList.toggle('hidden', !lvl.sandbox);
     openNotes('c', lvl);
     $('c-results').classList.add('hidden');
     document.querySelector('#screen-circuit .seq-only').classList.toggle('hidden', !lvl.sequential);
@@ -340,14 +341,14 @@
       onChange: (c) => {
         save.circuits[lvl.id] = c;
         persist();
-        if (lvl.sandbox) renderSandboxTests();
+        if (lvl.sandbox) refreshSandbox();
       },
       onSim: updateCircuitStatus,
       onMessage: showToast,
       symbols: !!save.symbols,
       freeIO: !!lvl.sandbox,
     });
-    if (lvl.sandbox) renderSandboxTests();
+    if (lvl.sandbox) refreshSandbox();
   }
 
   // ------------------------------------------------- Tests du bac à sable
@@ -359,7 +360,11 @@
     if (!Array.isArray(editor.circuit.tests)) editor.circuit.tests = [];
     return editor.circuit.tests;
   };
-  const saveTests = () => { save.circuits[SANDBOX.id] = editor.circuit; persist(); renderSandboxTests(); };
+  const saveTests = () => { save.circuits[SANDBOX.id] = editor.circuit; persist(); refreshSandbox(); };
+  function refreshSandbox() {
+    renderSandboxTests();
+    renderBuilds();
+  }
 
   function renderSandboxTests() {
     const ins = ioOf('IN');
@@ -420,6 +425,119 @@
       saveTests();
     } else if (b.id === 't-run') {
       runSandboxTests();
+    }
+  });
+
+  // ------------------------------------------- Constructions du bac à sable
+  // Chaque construction enregistrée garde un nom et une copie du circuit, tests compris.
+  // Le bac à sable continue de garder tout seul le travail en cours.
+
+  const clone = (o) => JSON.parse(JSON.stringify(o));
+  const builds = () => {
+    if (!save.builds || typeof save.builds !== 'object' || Array.isArray(save.builds)) save.builds = {};
+    return save.builds;
+  };
+  const currentBuild = () => builds()[save.currentBuild] || null;
+  // Sélectionner un composant le fait passer au premier plan : on compare donc sans tenir compte de l'ordre.
+  const sameCircuit = (a, b) => {
+    const norm = (c) => JSON.stringify({
+      components: c.components.slice().sort((p, q) => String(p.id).localeCompare(String(q.id))),
+      wires: c.wires.map((w) => `${w.from.c}.${w.from.p}>${w.to.c}.${w.to.p}`).sort(),
+      tests: c.tests || [],
+    });
+    return norm(a) === norm(b);
+  };
+  const unsaved = () => {
+    const b = currentBuild();
+    return b ? !sameCircuit(b.circuit, editor.circuit) : editor.circuit.components.length > 0;
+  };
+
+  function renderBuilds() {
+    const b = currentBuild();
+    const status = unsaved() ? '<span class="build-dirty">• modifications non enregistrées</span>'
+      : b ? '<span class="build-ok">✓ enregistrée</span>' : '';
+    let html = '<h4>Mes constructions</h4>'
+      + `<p class="build-current">${b ? `<b>${esc(b.name)}</b>` : '<i>Construction sans nom</i>'} ${status}</p>`
+      + `<div class="tests-actions">
+        <button class="primary" id="b-save">💾 Enregistrer</button>
+        <button id="b-saveas">Enregistrer sous…</button>
+        <button id="b-new">+ Nouvelle</button>
+      </div>`;
+    const list = Object.entries(builds()).sort((p, q) => p[1].name.localeCompare(q[1].name));
+    if (list.length) {
+      html += '<ul class="build-list">' + list.map(([id, item]) => `<li class="${id === save.currentBuild ? 'current' : ''}">
+        <button class="build-open" data-open="${esc(id)}" title="Ouvrir">${esc(item.name)}</button>
+        <button class="link" data-rename="${esc(id)}" title="Renommer">✎</button>
+        <button class="link danger" data-remove="${esc(id)}" title="Supprimer">×</button></li>`).join('') + '</ul>';
+    }
+    $('c-builds').innerHTML = html;
+  }
+
+  function askBuildName(initial, exceptId) {
+    const answer = window.prompt('Nom de la construction :', initial);
+    if (answer == null) return null;
+    const name = answer.trim().slice(0, 40);
+    if (!name) return null;
+    const clash = Object.entries(builds()).find(([id, item]) => id !== exceptId && item.name === name);
+    return { name, clash: clash ? clash[0] : null };
+  }
+
+  function saveBuildAs() {
+    const b = currentBuild();
+    const res = askBuildName(b ? b.name : 'Ma construction', null);
+    if (!res) return;
+    let id = res.clash;
+    if (id && id !== save.currentBuild && !confirm(`Une construction s'appelle déjà « ${res.name} ». La remplacer ?`)) return;
+    if (!id) id = 'b' + Date.now().toString(36);
+    builds()[id] = { name: res.name, circuit: clone(editor.circuit), updated: Date.now() };
+    save.currentBuild = id;
+    persist();
+    showToast(`« ${res.name} » est enregistrée.`);
+    renderBuilds();
+  }
+
+  // Remplace le circuit du bac à sable, après accord si le travail en cours n'est pas enregistré.
+  function loadSandbox(circuit, buildId) {
+    if (unsaved() && !confirm('Les modifications non enregistrées de cette construction seront perdues. Continuer ?')) return;
+    save.currentBuild = buildId;
+    save.circuits[SANDBOX.id] = clone(circuit);
+    persist();
+    openLevel(SANDBOX);
+  }
+
+  $('c-builds').addEventListener('click', (e) => {
+    const b = e.target.closest('button');
+    if (!b || !editor) return;
+    if (b.id === 'b-save') {
+      const item = currentBuild();
+      if (!item) { saveBuildAs(); return; }
+      item.circuit = clone(editor.circuit);
+      item.updated = Date.now();
+      persist();
+      showToast(`« ${item.name} » est enregistrée.`);
+      renderBuilds();
+    } else if (b.id === 'b-saveas') {
+      saveBuildAs();
+    } else if (b.id === 'b-new') {
+      loadSandbox({ components: [], wires: [], tests: [] }, null);
+    } else if (b.dataset.open) {
+      const item = builds()[b.dataset.open];
+      if (item && b.dataset.open !== save.currentBuild) loadSandbox(item.circuit, b.dataset.open);
+    } else if (b.dataset.rename) {
+      const item = builds()[b.dataset.rename];
+      const res = item && askBuildName(item.name, b.dataset.rename);
+      if (!res) return;
+      if (res.clash) { showToast(`Le nom « ${res.name} » est déjà pris.`); return; }
+      item.name = res.name;
+      persist();
+      renderBuilds();
+    } else if (b.dataset.remove) {
+      const item = builds()[b.dataset.remove];
+      if (!item || !confirm(`Supprimer la construction « ${item.name} » ?`)) return;
+      delete builds()[b.dataset.remove];
+      if (save.currentBuild === b.dataset.remove) save.currentBuild = null;
+      persist();
+      renderBuilds();
     }
   });
 
@@ -904,6 +1022,7 @@
     return {
       done: obj(data.done), circuits: obj(data.circuits), programs: obj(data.programs), notes: obj(data.notes), drawings: obj(data.drawings),
       free: !!data.free, notesClosed: !!data.notesClosed, descHidden: !!data.descHidden, symbols: !!data.symbols,
+      builds: obj(data.builds), currentBuild: typeof data.currentBuild === 'string' ? data.currentBuild : null,
     };
   }
 
@@ -930,7 +1049,7 @@
   });
 
   $('reset-progress').onclick = () => {
-    if (!confirm('Effacer toute la progression, les circuits, les programmes, les brouillons et les dessins ?')) return;
+    if (!confirm('Effacer toute la progression, les circuits, les programmes, les brouillons, les dessins et les constructions ?')) return;
     save = { done: {}, circuits: {}, programs: {}, notes: {}, drawings: {}, free: false };
     persist();
     renderMenu();

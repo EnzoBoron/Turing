@@ -17,8 +17,7 @@ qui ne peuvent pas lire les dossiers `css/` et `js/`.)
 ## Sauvegarde
 
 La progression, les circuits, les programmes, les brouillons (la zone de notes de chaque niveau)
-et les dessins au crayon
-sont enregistrés automatiquement dans le navigateur.
+les dessins au crayon et les constructions du bac à sable sont enregistrés automatiquement dans le navigateur.
 Depuis le menu, **Exporter la sauvegarde** télécharge un fichier `turing-sauvegarde-AAAA-MM-JJ.json`,
 et **Importer une sauvegarde** le recharge : pratique pour changer d'ordinateur ou de navigateur,
 ou pour garder une copie de sécurité.
@@ -43,7 +42,8 @@ ou pour garder une copie de sécurité.
 - **🧪 Bac à sable** (sur le menu) : un circuit libre avec tous les composants, sans objectif. On y place
   ses propres **Entrées** et **Sorties** (double-clic pour les renommer) ; **Table de vérité** calcule le
   résultat pour toutes les combinaisons des entrées câblées, et la **batterie de tests** du panneau de
-  gauche vérifie les sorties attendues qu'on a écrites soi-même.
+  gauche vérifie les sorties attendues qu'on a écrites soi-même. **Mes constructions** enregistre le circuit
+  (et ses tests) sous un nom, pour le rouvrir, le renommer ou le supprimer plus tard.
 - **⊳ Symboles** dessine les portes (AND, OR, NOT, XOR…) avec leur symbole officiel, comme dans les manuels.
 - **📋 Copier le schéma** affiche le circuit en texte, une ligne par porte (`MUX1 = MUX(A: AND1, B: OR1, S: Op0)`),
   pratique pour le partager ou demander de l'aide.
