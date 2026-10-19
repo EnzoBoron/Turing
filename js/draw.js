@@ -28,12 +28,16 @@
     // Chaque trait : { c: couleur, p: [x0, y0, x1, y1…], a: accroche }. L'accroche dit dans
     // quel repère sont ses points : « scroll:<id> » pour une zone qui défile, un nom donné
     // par `anchorOf` (le circuit, qui se zoome), ou rien pour la page elle-même.
-    constructor(canvas, { onChange, anchorOf, frames }) {
+    // `under(anchor)` : vrai si ces traits sont peints par quelqu'un d'autre, sous son contenu
+    // (le circuit les peint sous ses portes) ; `onStrokes` le prévient quand ils changent.
+    constructor(canvas, { onChange, anchorOf, frames, under, onStrokes }) {
       this.canvas = canvas;
       this.ctx = canvas.getContext('2d');
       this.onChange = onChange || (() => {});
       this.anchorOf = anchorOf || (() => null);
       this.frames = frames || (() => null);
+      this.under = under || (() => false);
+      this.onStrokes = onStrokes || (() => {});
       this.strokes = [];
       this.color = 'text';
       this.eraser = false;
@@ -55,6 +59,7 @@
       this.up();
       this.strokes = strokes;
       this.draw();
+      this.onStrokes();
     }
 
     undo() {
@@ -71,6 +76,7 @@
 
     changed() {
       this.draw();
+      this.onStrokes();
       this.onChange(this.strokes);
     }
 
@@ -130,6 +136,7 @@
         this.strokes.push(this.active);
       }
       this.draw();
+      this.onStrokes();
     }
 
     move(e) {
@@ -147,6 +154,7 @@
       if (Math.hypot(x - p[p.length - 2], y - p[p.length - 1]) < MIN_STEP) return;
       p.push(x, y);
       this.draw();
+      this.onStrokes();
     }
 
     up() {
@@ -177,7 +185,35 @@
         }
         return true;
       });
-      if (this.strokes.length !== before) this.onChange(this.strokes);
+      if (this.strokes.length !== before) {
+        this.onStrokes();
+        this.onChange(this.strokes);
+      }
+    }
+
+    // Peint, dans le repère déjà en place sur `ctx`, les traits d'une accroche peinte
+    // par-dessous (voir `under`). `scale` garde un trait de même épaisseur à l'écran.
+    paint(ctx, anchor, scale = 1) {
+      const textColor = getComputedStyle(document.body).color;
+      ctx.save();
+      ctx.lineCap = 'round';
+      ctx.lineJoin = 'round';
+      ctx.lineWidth = PEN_WIDTH / scale;
+      for (const s of this.strokes) {
+        if (s.a !== anchor) continue;
+        const p = s.p;
+        ctx.strokeStyle = ctx.fillStyle = s.c === 'text' ? textColor : s.c;
+        ctx.beginPath();
+        if (p.length === 2) {
+          ctx.arc(p[0], p[1], PEN_WIDTH / 2 / scale, 0, Math.PI * 2);
+          ctx.fill();
+        } else {
+          ctx.moveTo(p[0], p[1]);
+          for (let i = 2; i < p.length; i += 2) ctx.lineTo(p[i], p[i + 1]);
+          ctx.stroke();
+        }
+      }
+      ctx.restore();
     }
 
     draw() {
@@ -191,6 +227,7 @@
       ctx.lineJoin = 'round';
       ctx.lineWidth = PEN_WIDTH;
       for (const s of this.strokes) {
+        if (s.a && this.under(s.a)) continue;
         const sp = this.screenPoints(s);
         if (!sp) continue;
         const p = sp.pts;

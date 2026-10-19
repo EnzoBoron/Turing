@@ -243,6 +243,9 @@
         clip: r,
       };
     },
+    // Sur le circuit, c'est l'éditeur qui peint les traits, sous ses fils et ses portes.
+    under: (anchor) => anchor === 'circuit' && !!editor && document.body.dataset.screen === 'circuit',
+    onStrokes: () => { if (editor && document.body.dataset.screen === 'circuit') editor.draw(); },
   });
   function loadDrawing() {
     if (!save.drawings || typeof save.drawings !== 'object') save.drawings = {};
@@ -415,6 +418,7 @@
       symbols: !!save.symbols,
       freeIO: !!lvl.sandbox,
       onDraw: () => drawLayer.draw(),
+      underlay: (ctx, scale) => drawLayer.paint(ctx, 'circuit', scale),
     });
     drawLayer.draw();
     if (lvl.sandbox) refreshSandbox();

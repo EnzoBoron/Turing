@@ -25,7 +25,7 @@
   const IO_PREFIX = { IN: 'E', OUT: 'S' };
 
   class CircuitEditor {
-    constructor(canvas, { level, circuit, onChange, onSim, onMessage, symbols, freeIO, onDraw }) {
+    constructor(canvas, { level, circuit, onChange, onSim, onMessage, symbols, freeIO, onDraw, underlay }) {
       this.canvas = canvas;
       this.ctx = canvas.getContext('2d');
       this.level = level;
@@ -37,6 +37,7 @@
       this.symbols = !!symbols;
       this.freeIO = !!freeIO;
       this.onDraw = onDraw || (() => {});
+      this.underlay = underlay || (() => {});
       this.selection = null;
       this.drag = null;
       this.hoverPin = null;
@@ -545,6 +546,9 @@
       }
 
       ctx.setTransform(this.dpr * scale, 0, 0, this.dpr * scale, this.dpr * vx, this.dpr * vy);
+
+      // Dessins au crayon posés sur le circuit : sous les fils et les composants.
+      this.underlay(ctx, scale);
 
       // Fils.
       this.circuit.wires.forEach((w, k) => {

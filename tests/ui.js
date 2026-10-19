@@ -201,14 +201,40 @@ async function main() {
     const k = window.devicePixelRatio || 1;
     return cv.getContext('2d').getImageData(Math.round(x * k), Math.round(y * k), 1, 1).data[3] > 0;
   }, [x, y]);
+  // Couleur du canvas du circuit à un point de l'écran.
+  const circuitPixel = (x, y) => page.evaluate(([x, y]) => {
+    const cv = document.getElementById('c-canvas');
+    const r = cv.getBoundingClientRect();
+    const k = cv.width / r.width;
+    return [...cv.getContext('2d').getImageData(Math.round((x - r.left) * k), Math.round((y - r.top) * k), 1, 1).data];
+  }, [x, y]);
+  const isRed = ([r, g, b]) => r > 180 && g < 110 && b < 110;
   await open('and');
   check('un trait posé sur le circuit y est accroché', (await drawn()).every((t) => t.a === 'circuit'));
+  await page.click('#draw-btn');
+  await page.click('#draw-colors .swatch[data-color="#e03131"]');
   const cbox = await page.locator('#c-canvas').boundingBox();
-  const at = { x: cbox.x + 150, y: cbox.y + 300 };
-  check('il est visible là où il a été tracé', await inkAt(at.x, at.y));
+  const at = { x: cbox.x + 250, y: cbox.y + 250 };
+  await page.mouse.move(at.x - 60, at.y);
+  await page.mouse.down();
+  await page.mouse.move(at.x + 60, at.y, { steps: 8 });
+  await page.mouse.up();
+  await page.keyboard.press('Escape');
+  check('le circuit peint lui-même le trait, pas le calque du dessus', isRed(await circuitPixel(at.x, at.y)) && !(await inkAt(at.x, at.y)));
   await page.evaluate(() => { const ed = window.game.editor; ed.view.y += 80; ed.draw(); });
-  check('il suit le déplacement de la vue du circuit', !(await inkAt(at.x, at.y)) && await inkAt(at.x, at.y + 80));
+  check('il suit le déplacement de la vue du circuit', !isRed(await circuitPixel(at.x, at.y)) && isRed(await circuitPixel(at.x, at.y + 80)));
   await page.evaluate(() => { const ed = window.game.editor; ed.view.y -= 80; ed.draw(); });
+  const gateId = await page.evaluate(([x, y]) => {
+    const ed = window.game.editor;
+    const r = ed.canvas.getBoundingClientRect();
+    const g = ed.addComponent('NAND');
+    g.x = (x - r.left - ed.view.x) / ed.view.scale - 35;
+    g.y = (y - r.top - ed.view.y) / ed.view.scale - 25;
+    ed.draw();
+    return g.id;
+  }, [at.x, at.y]);
+  check('une porte posée dessus cache le trait', !isRed(await circuitPixel(at.x, at.y)));
+  await page.evaluate((id) => { const ed = window.game.editor; ed.selection = { kind: 'comp', id }; ed.deleteSelection(); }, gateId);
 
   await page.click('#home-btn');
   await page.setViewportSize({ width: 1280, height: 500 });
@@ -429,7 +455,7 @@ async function main() {
   const data = JSON.parse(fs.readFileSync(file, 'utf8'));
   check('l\'export contient le niveau réussi', data.format === 'turing-sauvegarde' && !!data.done.and);
   check('l\'export contient le circuit', Array.isArray(data.circuits.and && data.circuits.and.components));
-  check('l\'export contient les dessins', data.drawings && data.drawings.and && data.drawings.and.length === 1);
+  check('l\'export contient les dessins', data.drawings && data.drawings.and && data.drawings.and.length === 2);
   check('l\'export contient les brouillons', data.notes && data.notes.sum === 'compteur dans R4');
   check('l\'export contient les constructions', Object.values(data.builds || {}).some((b) => b.name === 'XOR maison'));
 
