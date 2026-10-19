@@ -3,7 +3,7 @@
 // Lancement : node tests/run.js
 'use strict';
 
-const { verifyCircuit, getDef, describeCircuit } = require('../js/components.js');
+const { verifyCircuit, getDef, describeCircuit, truthTableOf } = require('../js/components.js');
 const { LEVELS } = require('../js/levels.js');
 const Nando = require('../js/cpu.js');
 
@@ -485,6 +485,16 @@ console.log('Schéma en texte');
   check('les sorties du niveau', text.includes('R = MUX1') && text.includes('Co = ADD1.Co'), text);
   c.wires = c.wires.filter((w) => w.to.c !== 'm' || w.to.p !== 2);
   check('une patte libre est signalée', describeCircuit(lvl, c).includes('S: rien'));
+}
+
+console.log('Table de vérité libre');
+{
+  const lvl = { inputs: ['A', 'B', 'C'], outputs: ['Q0', 'Q1'] };
+  const c = build(lvl, { x: ['XOR', 'A', 'C'] }, ['x', 'x']);
+  c.wires = c.wires.filter((w) => w.to.c !== 'out1');
+  const t = truthTableOf(lvl, c);
+  check('seules les entrées et sorties câblées comptent', t.inputs.join() === '0,2' && t.outputs.join() === '0', JSON.stringify(t));
+  check('les lignes donnent le XOR', t.rows.map((r) => r.out[0]).join('') === '0110', JSON.stringify(t.rows));
 }
 
 console.log('Composants débloqués');

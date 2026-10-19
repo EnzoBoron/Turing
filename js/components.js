@@ -204,6 +204,29 @@
     return { nand, delays };
   }
 
+  // Table de vérité d'un circuit quelconque (bac à sable), sur les seules entrées
+  // et sorties câblées. Chaque ligne part des mémoires remises à 0.
+  function truthTableOf(level, circuit) {
+    const sim = new Simulator(circuit);
+    if (sim.error) return { error: sim.error };
+    const wired = (c, side) => circuit.wires.some((w) => (side === 'from' ? w.from.c : w.to.c) === c.id);
+    const pick = (type, side) => circuit.components.filter((c) => c.type === type && wired(c, side))
+      .map((c) => c.idx).sort((p, q) => p - q);
+    const ins = pick('IN', 'from');
+    const outs = pick('OUT', 'to');
+    const rows = [];
+    for (let n = 0; n < 1 << ins.length; n++) {
+      const bits = ins.map((_, k) => (n >> (ins.length - 1 - k)) & 1);
+      const values = level.inputs.map(() => 0);
+      ins.forEach((idx, k) => { values[idx] = bits[k]; });
+      sim.reset();
+      sim.evaluate(values);
+      const all = sim.outputs(level.outputs.length);
+      rows.push({ in: bits, out: outs.map((idx) => all[idx]) });
+    }
+    return { inputs: ins, outputs: outs, rows, stateful: sim.stateful.length > 0 };
+  }
+
   // Portes dont l'ordre des entrées ne compte pas : on n'écrit pas le nom des pattes.
   const SYMMETRIC = new Set(['NAND', 'NOT', 'AND', 'OR', 'NOR', 'XOR', 'XNOR']);
 
@@ -241,7 +264,7 @@
     return lines.join('\n');
   }
 
-  const api = { COMPONENTS, getDef, Simulator, verifyCircuit, circuitCost, describeCircuit };
+  const api = { COMPONENTS, getDef, Simulator, verifyCircuit, circuitCost, describeCircuit, truthTableOf };
   global.Circuits = api;
   if (typeof module !== 'undefined') module.exports = api;
 })(typeof window !== 'undefined' ? window : globalThis);

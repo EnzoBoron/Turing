@@ -244,6 +244,23 @@ async function main() {
   await page.keyboard.press('Escape');
   check('Échap ferme la fenêtre du schéma', !(await page.isVisible('#copy-modal')));
 
+  console.log('Bac à sable');
+  await page.click('#home-btn');
+  await page.click('#sandbox-btn');
+  await page.waitForFunction(() => window.game.level && window.game.level.id === 'sandbox');
+  check('le bac à sable propose tous les composants', (await page.$$('.pal-item')).length === await page.evaluate(() => Object.values(window.Circuits.COMPONENTS).filter((d) => !d.io).length));
+  const sx = await addGate('XOR');
+  await drag(await pin('in0', 'out'), await pin(sx, 'in', 0));
+  await drag(await pin('in1', 'out'), await pin(sx, 'in', 1));
+  await drag(await pin(sx, 'out'), await pin('out0', 'in'));
+  await page.click('#c-verify');
+  const table = await page.$$eval('#c-results tbody tr', (trs) => trs.map((tr) => [...tr.children].map((td) => td.textContent).join('')));
+  check('la table de vérité est calculée', table.join(' ') === '000 011 101 110', table.join(' '));
+  check('pas de victoire dans le bac à sable', !(await page.isVisible('#modal')));
+  await page.reload();
+  await page.waitForFunction(() => window.game.level && window.game.level.id === 'sandbox');
+  check('le circuit du bac à sable est gardé', (await wires()).length === 3);
+
   console.log('Fichier de sauvegarde');
   await page.click('#home-btn');
   const [download] = await Promise.all([page.waitForEvent('download'), page.click('#export-save')]);

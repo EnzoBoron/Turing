@@ -2,7 +2,7 @@
 (function () {
   'use strict';
 
-  const { COMPONENTS, verifyCircuit, circuitCost, describeCircuit } = window.Circuits;
+  const { COMPONENTS, verifyCircuit, circuitCost, describeCircuit, truthTableOf } = window.Circuits;
   const { CHAPTERS, LEVELS } = window.Levels;
   const Nando = window.Nando;
 
@@ -40,6 +40,20 @@
   };
   const chapterOf = (lvl) => CHAPTERS.find((c) => c.id === lvl.chapter);
 
+  // Bac à sable : un circuit libre, sans objectif, avec tous les composants.
+  const SANDBOX = {
+    id: 'sandbox', type: 'circuit', sandbox: true, sequential: true, title: 'Bac à sable',
+    inputs: ['A', 'B', 'C', 'D'], outputs: ['Q0', 'Q1', 'Q2', 'Q3'], tests: [],
+    pins: { A: 'entrée libre', B: 'entrée libre', C: 'entrée libre', D: 'entrée libre',
+      Q0: 'sortie libre', Q1: 'sortie libre', Q2: 'sortie libre', Q3: 'sortie libre' },
+    desc: `<p>Ici, pas d'objectif ni de test : tous les composants sont disponibles, pour t'exercer et
+      essayer tes idées.</p>
+      <p>Branche ce que tu veux entre les entrées A à D et les sorties Q0 à Q3. Le bouton
+      <b>Table de vérité</b> calcule le résultat de ton circuit pour toutes les combinaisons des entrées
+      que tu as câblées.</p>`,
+  };
+  const chapterTitle = (lvl) => (lvl.sandbox ? 'Entraînement' : chapterOf(lvl).title);
+
   // Instructions supplémentaires disponibles dans un niveau d'assemblage :
   // celles présentées par ce niveau et par les niveaux qui le précèdent.
   function extFor(lvl) {
@@ -50,6 +64,7 @@
 
   // Composants disponibles : NAND + ceux débloqués par les niveaux précédents.
   function paletteFor(lvl) {
+    if (lvl.sandbox) return Object.keys(COMPONENTS).filter((t) => !COMPONENTS[t].io);
     const list = ['NAND'];
     for (const l of LEVELS.slice(0, levelIndex(lvl.id))) if (l.unlock && !list.includes(l.unlock)) list.push(l.unlock);
     for (const g of lvl.give || []) if (!list.includes(g)) list.push(g);
@@ -126,7 +141,7 @@
     current = lvl;
     loadDrawing();
     location.hash = lvl.id;
-    $('topbar-title').textContent = chapterOf(lvl).title + ' · ' + lvl.title;
+    $('topbar-title').textContent = chapterTitle(lvl) + ' · ' + lvl.title;
     if (lvl.type === 'circuit') openCircuit(lvl);
     else if (lvl.type === 'asm') openAsm(lvl);
     else openLesson(lvl);
@@ -283,7 +298,8 @@
   }
 
   function openCircuit(lvl) {
-    $('c-chapter').textContent = chapterOf(lvl).title;
+    $('c-chapter').textContent = chapterTitle(lvl);
+    $('c-verify').textContent = lvl.sandbox ? '▦ Table de vérité' : '✔ Vérifier';
     $('c-title').textContent = lvl.title;
     $('c-desc').innerHTML = lvl.desc + circuitGuide(lvl);
     openNotes('c', lvl);
@@ -369,6 +385,7 @@
 
   $('c-verify').onclick = () => {
     const lvl = current;
+    if (lvl.sandbox) { renderTruthTable(lvl, truthTableOf(lvl, editor.circuit)); return; }
     const res = verifyCircuit(lvl, editor.circuit);
     renderCircuitResults(lvl, res);
     if (res.ok) {
@@ -444,6 +461,30 @@
     });
     html += '</tbody></table></div>';
     box.innerHTML = closeBtn + head + html;
+  }
+
+  function renderTruthTable(lvl, res) {
+    const box = $('c-results');
+    box.classList.remove('hidden');
+    if (res.error) {
+      box.innerHTML = closeBtn + `<div class="verdict bad">✘ ${esc(res.error)}</div>`;
+      return;
+    }
+    if (!res.inputs.length || !res.outputs.length) {
+      box.innerHTML = closeBtn + '<div class="verdict">Câble au moins une entrée (A à D) et une sortie (Q0 à Q3) pour voir la table.</div>';
+      return;
+    }
+    let html = `<div class="verdict">▦ Table de vérité de ton circuit (${res.rows.length} lignes)</div>`;
+    if (res.stateful) html += '<p class="truth-note">Ton circuit a de la mémoire : chaque ligne part des mémoires à 0. Utilise ⏵ Tick pour voir son évolution.</p>';
+    html += '<div class="table-scroll"><table class="truth"><thead><tr>';
+    res.inputs.forEach((i) => { html += `<th class="in">${esc(lvl.inputs[i])}</th>`; });
+    res.outputs.forEach((i) => { html += `<th>${esc(lvl.outputs[i])}</th>`; });
+    html += '</tr></thead><tbody>';
+    for (const r of res.rows) {
+      html += '<tr>' + r.in.map((v) => `<td class="in">${v}</td>`).join('')
+        + r.out.map((v) => `<td class="${v ? 'ok' : ''}">${v}</td>`).join('') + '</tr>';
+    }
+    box.innerHTML = closeBtn + html + '</tbody></table></div>';
   }
 
   const closeBtn = '<button class="close-results" title="Fermer">×</button>';
@@ -729,6 +770,7 @@
   // ---------------------------------------------------------- Démarrage
 
   $('home-btn').onclick = goMenu;
+  $('sandbox-btn').onclick = () => openLevel(SANDBOX);
   $('free-mode').addEventListener('change', (e) => { save.free = e.target.checked; persist(); renderMenu(); });
   // Fichier de sauvegarde : export / import JSON.
   const SAVE_FORMAT = 'turing-sauvegarde';
@@ -806,8 +848,8 @@
   function route() {
     const id = location.hash.slice(1);
     if (current && current.id === id) return;
-    const lvl = LEVELS.find((l) => l.id === id);
-    if (lvl && isUnlocked(lvl)) openLevel(lvl);
+    const lvl = id === SANDBOX.id ? SANDBOX : LEVELS.find((l) => l.id === id);
+    if (lvl && (lvl.sandbox || isUnlocked(lvl))) openLevel(lvl);
     else if (current || document.body.dataset.screen !== 'menu') goMenu();
   }
   window.addEventListener('hashchange', () => { hideModal(); route(); });
