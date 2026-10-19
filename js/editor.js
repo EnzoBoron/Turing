@@ -24,7 +24,7 @@
   const IO_PREFIX = { IN: 'E', OUT: 'S' };
 
   class CircuitEditor {
-    constructor(canvas, { level, circuit, onChange, onSim, onMessage, symbols, freeIO }) {
+    constructor(canvas, { level, circuit, onChange, onSim, onMessage, symbols, freeIO, onDraw }) {
       this.canvas = canvas;
       this.ctx = canvas.getContext('2d');
       this.level = level;
@@ -35,6 +35,7 @@
       this.view = { x: 0, y: 0, scale: 1 };
       this.symbols = !!symbols;
       this.freeIO = !!freeIO;
+      this.onDraw = onDraw || (() => {});
       this.selection = null;
       this.drag = null;
       this.hoverPin = null;
@@ -568,6 +569,7 @@
       // Composants.
       const cycle = new Set(this.sim ? this.sim.cycle : []);
       for (const c of this.circuit.components) this.drawComp(c, cycle.has(c.id));
+      this.onDraw(); // le crayon redessine ses traits accrochés au circuit
     }
 
     pinPos(pin) {

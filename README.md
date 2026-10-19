@@ -50,7 +50,8 @@ ou pour garder une copie de sécurité.
 - **📋 Copier le schéma** affiche le circuit en texte, une ligne par porte (`MUX1 = MUX(A: AND1, B: OR1, S: Op0)`),
   pratique pour le partager ou demander de l'aide.
 - **✎ Crayon** (en haut) : dessine par-dessus tout l'écran, avec plusieurs couleurs, une gomme et
-  <kbd>Ctrl</kbd>+<kbd>Z</kbd> ; <kbd>Échap</kbd> range le crayon. Chaque écran garde son dessin.
+  <kbd>Ctrl</kbd>+<kbd>Z</kbd> ; <kbd>Échap</kbd> range le crayon. Chaque écran garde son dessin, et chaque
+  trait reste accroché à ce qu'il recouvre : il défile avec le menu ou un panneau, et suit le zoom du circuit.
 
 ## Le processeur NANDO-8
 

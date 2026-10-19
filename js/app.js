@@ -231,11 +231,30 @@
       else delete save.drawings[drawKey()];
       persist();
     },
+    // Un trait posé sur le circuit suit son zoom et son déplacement.
+    anchorOf: (el) => (el.id === 'c-canvas' ? 'circuit' : null),
+    frames: (anchor) => {
+      if (anchor !== 'circuit' || !editor || document.body.dataset.screen !== 'circuit') return null;
+      const r = editor.canvas.getBoundingClientRect();
+      const { x: vx, y: vy, scale } = editor.view;
+      return {
+        toLocal: (x, y) => [(x - r.left - vx) / scale, (y - r.top - vy) / scale],
+        toScreen: (x, y) => [r.left + vx + x * scale, r.top + vy + y * scale],
+        clip: r,
+      };
+    },
   });
   function loadDrawing() {
     if (!save.drawings || typeof save.drawings !== 'object') save.drawings = {};
     const strokes = Array.isArray(save.drawings[drawKey()]) ? save.drawings[drawKey()] : [];
-    drawLayer.load(strokes.filter((s) => s && Array.isArray(s.p)).map((s) => ({ c: String(s.c), p: s.p.slice() })));
+    // Les anciens traits du menu n'avaient pas d'accroche : ils sont rattachés à la zone qui
+    // défile, en supposant le menu tout en haut (sous la barre du titre).
+    const top = document.querySelector('.topbar').offsetHeight;
+    drawLayer.load(strokes.filter((s) => s && Array.isArray(s.p)).map((s) => {
+      if (typeof s.a === 'string') return { c: String(s.c), p: s.p.slice(), a: s.a };
+      if (drawKey() !== 'menu') return { c: String(s.c), p: s.p.slice() };
+      return { c: String(s.c), p: s.p.map((v, i) => (i % 2 ? v - top : v)), a: 'scroll:screen-menu' };
+    }));
   }
   function setDrawing(on) {
     document.body.classList.toggle('drawing', on);
@@ -349,7 +368,9 @@
       onMessage: showToast,
       symbols: !!save.symbols,
       freeIO: !!lvl.sandbox,
+      onDraw: () => drawLayer.draw(),
     });
+    drawLayer.draw();
     if (lvl.sandbox) refreshSandbox();
   }
 

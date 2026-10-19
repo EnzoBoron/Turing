@@ -195,6 +195,39 @@ async function main() {
   await open('sum');
   check('chaque écran a son propre dessin', await page.evaluate(() => !(JSON.parse(localStorage.getItem('turing-save-v1')).drawings || {}).sum));
 
+  // Encre du calque du crayon à un point de l'écran.
+  const inkAt = (x, y) => page.evaluate(([x, y]) => {
+    const cv = document.getElementById('draw-layer');
+    const k = window.devicePixelRatio || 1;
+    return cv.getContext('2d').getImageData(Math.round(x * k), Math.round(y * k), 1, 1).data[3] > 0;
+  }, [x, y]);
+  await open('and');
+  check('un trait posé sur le circuit y est accroché', (await drawn()).every((t) => t.a === 'circuit'));
+  const cbox = await page.locator('#c-canvas').boundingBox();
+  const at = { x: cbox.x + 150, y: cbox.y + 300 };
+  check('il est visible là où il a été tracé', await inkAt(at.x, at.y));
+  await page.evaluate(() => { const ed = window.game.editor; ed.view.y += 80; ed.draw(); });
+  check('il suit le déplacement de la vue du circuit', !(await inkAt(at.x, at.y)) && await inkAt(at.x, at.y + 80));
+  await page.evaluate(() => { const ed = window.game.editor; ed.view.y -= 80; ed.draw(); });
+
+  await page.click('#home-btn');
+  await page.setViewportSize({ width: 1280, height: 500 });
+  await page.evaluate(() => { document.getElementById('screen-menu').scrollTop = 0; });
+  await page.click('#draw-btn');
+  await page.mouse.move(400, 300);
+  await page.mouse.down();
+  await page.mouse.move(600, 300, { steps: 6 });
+  await page.mouse.up();
+  await page.keyboard.press('Escape');
+  await page.waitForTimeout(300);
+  const menuStroke = await page.evaluate(() => (JSON.parse(localStorage.getItem('turing-save-v1')).drawings || {}).menu || []);
+  check('un trait sur le menu est accroché à sa zone qui défile', menuStroke.length === 1 && menuStroke[0].a === 'scroll:screen-menu', JSON.stringify(menuStroke.map((t) => t.a)));
+  await page.evaluate(() => { document.getElementById('screen-menu').scrollTop = 120; });
+  await page.waitForTimeout(50);
+  check('il défile avec le menu', !(await inkAt(500, 300)) && await inkAt(500, 180));
+  await page.evaluate(() => { document.getElementById('screen-menu').scrollTop = 0; });
+  await page.setViewportSize({ width: 1280, height: 800 });
+
   console.log('Brouillon');
   await open('and');
   await page.fill('#c-notes', 'A B | Q\n0 0 | 0');
