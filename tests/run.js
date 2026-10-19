@@ -495,6 +495,10 @@ console.log('Table de vérité libre');
   const t = truthTableOf(lvl, c);
   check('seules les entrées et sorties câblées comptent', t.inputs.join() === '0,2' && t.outputs.join() === '0', JSON.stringify(t));
   check('les lignes donnent le XOR', t.rows.map((r) => r.out[0]).join('') === '0110', JSON.stringify(t.rows));
+  const many = { inputs: Array.from({ length: 11 }, (_, k) => 'E' + k), outputs: ['S'] };
+  const wide = build(many, { o: ['OR', 'E0', 'E1'] }, ['o']);
+  for (let k = 2; k < 11; k++) wide.wires.push({ from: { c: 'in' + k, p: 0 }, to: { c: 'o', p: 0 } });
+  check('au-delà de 10 entrées câblées, pas de table complète', truthTableOf(many, wide).tooMany === true);
 }
 
 console.log('Constructions réutilisées');

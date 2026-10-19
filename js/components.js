@@ -308,6 +308,9 @@
     return { nand, delays };
   }
 
+  // Au-delà, une table complète devient trop longue à calculer et à lire (2^n lignes).
+  const MAX_TABLE_INPUTS = 10;
+
   // Table de vérité d'un circuit quelconque (bac à sable), sur les seules entrées
   // et sorties câblées. Chaque ligne part des mémoires remises à 0.
   function truthTableOf(level, circuit) {
@@ -318,6 +321,7 @@
       .map((c) => c.idx).sort((p, q) => p - q);
     const ins = pick('IN', 'from');
     const outs = pick('OUT', 'to');
+    if (ins.length > MAX_TABLE_INPUTS) return { inputs: ins, outputs: outs, tooMany: true };
     const rows = [];
     for (let n = 0; n < 1 << ins.length; n++) {
       const bits = ins.map((_, k) => (n >> (ins.length - 1 - k)) & 1);
@@ -368,7 +372,7 @@
     return lines.join('\n');
   }
 
-  const api = { COMPONENTS, getDef, Simulator, verifyCircuit, circuitCost, describeCircuit, truthTableOf, setCustoms };
+  const api = { COMPONENTS, getDef, Simulator, verifyCircuit, circuitCost, describeCircuit, truthTableOf, setCustoms, MAX_TABLE_INPUTS };
   global.Circuits = api;
   if (typeof module !== 'undefined') module.exports = api;
 })(typeof window !== 'undefined' ? window : globalThis);

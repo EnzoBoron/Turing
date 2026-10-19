@@ -324,6 +324,20 @@ async function main() {
   check('circuit et tests sont gardés', (await wires()).length === 3 && (await page.$$('.tests-edit tbody tr')).length === 4);
   await page.evaluate((id) => { const ed = window.game.editor; ed.selection = { kind: 'comp', id }; ed.deleteSelection(); }, e1);
   check('supprimer une entrée renumérote les autres', (await page.evaluate(() => window.game.level.inputs.join())) === 'E2');
+  const names = await page.evaluate(() => {
+    const ed = window.game.editor;
+    for (let k = 0; k < 11; k++) ed.addIO('IN');
+    return window.game.level.inputs.join();
+  });
+  check('pas de limite au nombre d\'entrées, numérotées dans l\'ordre', names === 'E2,E1,E3,E4,E5,E6,E7,E8,E9,E10,E11,E12', names);
+  await page.evaluate(() => {
+    // On retire les entrées ajoutées, qui ne sont câblées à rien.
+    const ed = window.game.editor;
+    for (const c of ed.circuit.components.filter((o) => o.type === 'IN' && !ed.circuit.wires.some((w) => w.from.c === o.id))) {
+      ed.selection = { kind: 'comp', id: c.id };
+      ed.deleteSelection();
+    }
+  });
 
   console.log('Constructions');
   check('une construction non enregistrée est signalée', (await page.textContent('#c-builds')).includes('non enregistrées'));

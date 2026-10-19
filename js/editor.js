@@ -19,8 +19,9 @@
   };
   const BUBBLE_R = 4;
 
-  // Bac à sable : le joueur place lui-même ses entrées (E1, E2…) et ses sorties (S1, S2…).
-  const MAX_IO = 8;
+  // Bac à sable : le joueur place lui-même ses entrées (E1, E2…) et ses sorties (S1, S2…),
+  // autant qu'il veut. Une nouvelle venue prend la dernière place avant renumérotation.
+  const LAST = Number.MAX_SAFE_INTEGER;
   const IO_PREFIX = { IN: 'E', OUT: 'S' };
 
   class CircuitEditor {
@@ -354,7 +355,7 @@
       const comps = this.circuit.components;
       const vals = new Map(comps.filter((c) => c.type === 'IN').map((c) => [c.id, this.inputVals[c.idx] || 0]));
       for (const type of ['IN', 'OUT']) {
-        const list = comps.filter((c) => c.type === type).sort((p, q) => (p.idx ?? 99) - (q.idx ?? 99));
+        const list = comps.filter((c) => c.type === type).sort((p, q) => (p.idx ?? LAST) - (q.idx ?? LAST));
         list.forEach((c, k) => {
           c.idx = k;
           if (!c.name) c.name = this.freeName(type);
@@ -372,11 +373,7 @@
     }
 
     addIO(type) {
-      if (this.circuit.components.filter((c) => c.type === type).length >= MAX_IO) {
-        this.onMessage(`Pas plus de ${MAX_IO} ${type === 'IN' ? 'entrées' : 'sorties'} dans le bac à sable.`);
-        return null;
-      }
-      return this.addComponent(type, { idx: 99, name: this.freeName(type) });
+      return this.addComponent(type, { idx: LAST, name: this.freeName(type) });
     }
 
     // Double-clic sur une entrée ou une sortie du bac à sable : on la renomme.

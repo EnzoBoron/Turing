@@ -2,7 +2,7 @@
 (function () {
   'use strict';
 
-  const { COMPONENTS, getDef, verifyCircuit, circuitCost, describeCircuit, truthTableOf, setCustoms } = window.Circuits;
+  const { COMPONENTS, getDef, verifyCircuit, circuitCost, describeCircuit, truthTableOf, setCustoms, MAX_TABLE_INPUTS } = window.Circuits;
   const { CHAPTERS, LEVELS } = window.Levels;
   const Nando = window.Nando;
 
@@ -436,6 +436,10 @@
       saveTests();
     } else if (b.id === 't-all') {
       const ins = ioOf('IN');
+      if (ins.length > MAX_TABLE_INPUTS) {
+        showToast(`Avec ${ins.length} entrées, il y aurait ${2 ** ins.length} combinaisons : ajoute plutôt tes lignes une par une avec « + Ligne ».`);
+        return;
+      }
       const key = (t) => ins.map((c) => (t.in[c.id] ? 1 : 0)).join('');
       const known = new Map(tests.map((t) => [key(t), t]));
       const rows = [];
@@ -770,7 +774,13 @@
       return;
     }
     if (!res.inputs.length || !res.outputs.length) {
-      box.innerHTML = closeBtn + '<div class="verdict">Câble au moins une entrée (A à D) et une sortie (Q0 à Q3) pour voir la table.</div>';
+      box.innerHTML = closeBtn + '<div class="verdict">Câble au moins une Entrée et une Sortie pour voir la table.</div>';
+      return;
+    }
+    if (res.tooMany) {
+      const n = res.inputs.length;
+      box.innerHTML = closeBtn + `<div class="verdict">Ton circuit a ${n} entrées câblées : sa table complète aurait ${(2 ** n).toLocaleString('fr-FR')} lignes.</div>`
+        + `<p class="truth-note">La table s'affiche jusqu'à ${MAX_TABLE_INPUTS} entrées. Au-delà, vérifie les cas qui t'intéressent avec la batterie de tests.</p>`;
       return;
     }
     let html = `<div class="verdict">▦ Table de vérité de ton circuit (${res.rows.length} lignes)</div>`;
