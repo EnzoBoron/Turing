@@ -270,16 +270,23 @@
     drawLayer.color = color;
     drawLayer.eraser = eraser;
     document.body.classList.toggle('erasing', eraser);
-    for (const b of document.querySelectorAll('#draw-colors .swatch')) {
+    let known = false;
+    for (const b of document.querySelectorAll('#draw-colors .swatch[data-color]')) {
       b.classList.toggle('on', !eraser && b.dataset.color === color);
+      if (b.dataset.color === color) known = true;
     }
+    // Une couleur choisie au sélecteur : c'est lui qui s'allume, teint de cette couleur.
+    const custom = document.querySelector('#draw-colors .swatch.custom');
+    custom.classList.toggle('on', !eraser && !known);
+    custom.style.background = known ? '' : color;
     $('draw-eraser').classList.toggle('on', eraser);
     drawLayer.draw();
   }
-  for (const b of document.querySelectorAll('#draw-colors .swatch')) {
+  for (const b of document.querySelectorAll('#draw-colors .swatch[data-color]')) {
     b.style.background = b.dataset.color === 'text' ? 'var(--text)' : b.dataset.color;
     b.addEventListener('click', () => setPen(b.dataset.color, false));
   }
+  $('draw-custom').addEventListener('input', (e) => setPen(e.target.value, false));
   $('draw-btn').onclick = () => setDrawing(!document.body.classList.contains('drawing'));
   $('draw-eraser').onclick = () => setPen(drawLayer.color, !drawLayer.eraser);
   $('draw-undo').onclick = () => drawLayer.undo();

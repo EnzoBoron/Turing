@@ -222,6 +222,18 @@ async function main() {
   await page.keyboard.press('Escape');
   check('le circuit peint lui-même le trait, pas le calque du dessus', isRed(await circuitPixel(at.x, at.y)) && !(await inkAt(at.x, at.y)));
   await page.evaluate(() => { const ed = window.game.editor; ed.view.y += 80; ed.draw(); });
+  await page.click('#draw-btn');
+  check('douze couleurs et un sélecteur libre', (await page.$$('#draw-colors .swatch[data-color]')).length === 12 && !!(await page.$('#draw-custom')));
+  await page.evaluate(() => { const i = document.getElementById('draw-custom'); i.value = '#123456'; i.dispatchEvent(new Event('input', { bubbles: true })); });
+  await page.mouse.move(at.x - 60, at.y + 150);
+  await page.mouse.down();
+  await page.mouse.move(at.x + 60, at.y + 150, { steps: 6 });
+  await page.mouse.up();
+  await page.waitForTimeout(300);
+  check('le sélecteur libre change la couleur du crayon', (await drawn()).at(-1).c === '#123456');
+  await page.keyboard.press('Control+z');
+  await page.click('#draw-colors .swatch[data-color="text"]');
+  await page.keyboard.press('Escape');
   check('il suit le déplacement de la vue du circuit', !isRed(await circuitPixel(at.x, at.y)) && isRed(await circuitPixel(at.x, at.y + 80)));
   await page.evaluate(() => { const ed = window.game.editor; ed.view.y -= 80; ed.draw(); });
   const gateId = await page.evaluate(([x, y]) => {
