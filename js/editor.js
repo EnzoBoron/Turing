@@ -9,8 +9,18 @@
 
   const snap = (v) => Math.round(v / GRID) * GRID;
 
+  // Portes dessinées avec leur symbole normalisé (ANSI) en mode « symboles ».
+  // `shape` : forme du corps ; `bubble` : petit rond de négation en sortie.
+  const SYMBOLS = {
+    NOT: { shape: 'not', bubble: true },
+    AND: { shape: 'and' }, NAND: { shape: 'and', bubble: true },
+    OR: { shape: 'or' }, NOR: { shape: 'or', bubble: true },
+    XOR: { shape: 'xor' }, XNOR: { shape: 'xor', bubble: true },
+  };
+  const BUBBLE_R = 4;
+
   class CircuitEditor {
-    constructor(canvas, { level, circuit, onChange, onSim, onMessage }) {
+    constructor(canvas, { level, circuit, onChange, onSim, onMessage, symbols }) {
       this.canvas = canvas;
       this.ctx = canvas.getContext('2d');
       this.level = level;
@@ -19,6 +29,7 @@
       this.onSim = onSim || (() => {});
       this.onMessage = onMessage || (() => {});
       this.view = { x: 0, y: 0, scale: 1 };
+      this.symbols = !!symbols;
       this.selection = null;
       this.drag = null;
       this.hoverPin = null;
@@ -522,6 +533,79 @@
       ctx.stroke();
     }
 
+    setSymbols(on) {
+      this.symbols = on;
+      this.draw();
+    }
+
+    // Symbole normalisé d'une porte, dans le même rectangle que le bloc :
+    // les pastilles ne bougent pas, seul le dessin change.
+    drawSymbol(c, g, sym, selected, inCycle) {
+      const ctx = this.ctx;
+      const C = this.colors;
+      const x0 = c.x + 12;
+      const x1 = c.x + g.w - (sym.bubble ? 12 + BUBBLE_R * 2 : 12);
+      const y0 = c.y + 2;
+      const y1 = c.y + g.h - 2;
+      const ym = (y0 + y1) / 2;
+      const r = (y1 - y0) / 2;
+
+      // Fils courts entre les pastilles et le corps.
+      ctx.strokeStyle = C.compBorder;
+      ctx.lineWidth = 1.5;
+      ctx.beginPath();
+      for (const pt of g.ins) { ctx.moveTo(pt.x, pt.y); ctx.lineTo(x0 + 6, pt.y); }
+      for (const pt of g.outs) { ctx.moveTo(x1, pt.y); ctx.lineTo(pt.x, pt.y); }
+      ctx.stroke();
+
+      ctx.beginPath();
+      if (sym.shape === 'not') {
+        ctx.moveTo(x0, y0);
+        ctx.lineTo(x1, ym);
+        ctx.lineTo(x0, y1);
+        ctx.closePath();
+      } else if (sym.shape === 'and') {
+        const xm = Math.max(x0, x1 - r);
+        ctx.moveTo(x0, y0);
+        ctx.lineTo(xm, y0);
+        ctx.arc(xm, ym, r, -Math.PI / 2, Math.PI / 2);
+        ctx.lineTo(x0, y1);
+        ctx.closePath();
+      } else {
+        const tip = x0 + (x1 - x0) * 0.55;
+        ctx.moveTo(x0, y0);
+        ctx.quadraticCurveTo(tip, y0, x1, ym);
+        ctx.quadraticCurveTo(tip, y1, x0, y1);
+        ctx.quadraticCurveTo(x0 + 10, ym, x0, y0);
+      }
+      ctx.fillStyle = C.comp;
+      ctx.fill();
+      ctx.lineWidth = selected ? 2.5 : 1.5;
+      ctx.strokeStyle = inCycle ? C.err : selected ? C.sel : C.text;
+      ctx.stroke();
+      if (sym.shape === 'xor') {
+        ctx.beginPath();
+        ctx.moveTo(x0 - 6, y0);
+        ctx.quadraticCurveTo(x0 + 4, ym, x0 - 6, y1);
+        ctx.stroke();
+      }
+      if (sym.bubble) {
+        ctx.beginPath();
+        ctx.arc(x1 + BUBBLE_R, ym, BUBBLE_R, 0, Math.PI * 2);
+        ctx.fillStyle = C.comp;
+        ctx.fill();
+        ctx.stroke();
+      }
+
+      // Le nom reste écrit en petit, pour apprendre à reconnaître les formes.
+      ctx.fillStyle = C.muted;
+      ctx.font = '600 9px system-ui, sans-serif';
+      ctx.textAlign = 'center';
+      ctx.textBaseline = 'middle';
+      const cx = sym.shape === 'not' ? x0 + (x1 - x0) * 0.35 : (x0 + x1) / 2 + 2;
+      ctx.fillText(sym.shape === 'not' ? '' : getDef(c.type).label, cx, ym);
+    }
+
     drawComp(c, inCycle) {
       const ctx = this.ctx;
       const C = this.colors;
@@ -529,47 +613,51 @@
       const g = this.geom(c);
       const selected = this.selection && this.selection.kind === 'comp' && this.selection.id === c.id;
       const io = c.type === 'IN' || c.type === 'OUT';
+      const sym = this.symbols && SYMBOLS[c.type];
 
-      ctx.beginPath();
-      ctx.roundRect(c.x, c.y, g.w, g.h, io ? 16 : 6);
-      ctx.fillStyle = io ? C.io : def.stateful ? C.state : C.comp;
-      ctx.fill();
-      ctx.lineWidth = selected ? 2.5 : 1.5;
-      ctx.strokeStyle = inCycle ? C.err : selected ? C.sel : C.compBorder;
-      ctx.stroke();
-
-      ctx.textAlign = 'center';
-      ctx.textBaseline = 'middle';
-      if (io) {
-        const name = c.type === 'IN' ? this.level.inputs[c.idx] : this.level.outputs[c.idx];
-        let v;
-        if (c.type === 'IN') v = this.inputVals[c.idx];
-        else {
-          const i = this.sim.index.get(c.id);
-          v = this.sim.error ? null : this.sim.inputsOf[i][0];
-        }
-        ctx.fillStyle = C.text;
-        ctx.font = '600 12px system-ui, sans-serif';
-        ctx.fillText(name, c.x + (c.type === 'IN' ? 22 : 42), c.y + g.h / 2);
-        const bx = c.type === 'IN' ? c.x + 46 : c.x + 18;
+      if (sym) this.drawSymbol(c, g, sym, selected, inCycle);
+      else {
         ctx.beginPath();
-        ctx.arc(bx, c.y + g.h / 2, 9, 0, Math.PI * 2);
-        ctx.fillStyle = v ? C.on : C.off;
+        ctx.roundRect(c.x, c.y, g.w, g.h, io ? 16 : 6);
+        ctx.fillStyle = io ? C.io : def.stateful ? C.state : C.comp;
         ctx.fill();
-        ctx.fillStyle = '#fff';
-        ctx.font = '700 11px ui-monospace, monospace';
-        ctx.fillText(v == null ? '?' : String(v), bx, c.y + g.h / 2 + 0.5);
-      } else {
-        ctx.fillStyle = C.text;
-        ctx.font = '700 12px system-ui, sans-serif';
-        ctx.fillText(def.label, c.x + g.w / 2, c.y + g.h / 2);
-        ctx.font = '10px system-ui, sans-serif';
-        ctx.fillStyle = C.muted;
-        if (def.inputs.length > 1 || def.outputs.length > 1 || def.stateful) {
-          ctx.textAlign = 'left';
-          def.inputs.forEach((n, i) => ctx.fillText(n, g.ins[i].x + 8, g.ins[i].y));
-          ctx.textAlign = 'right';
-          def.outputs.forEach((n, i) => ctx.fillText(n, g.outs[i].x - 8, g.outs[i].y));
+        ctx.lineWidth = selected ? 2.5 : 1.5;
+        ctx.strokeStyle = inCycle ? C.err : selected ? C.sel : C.compBorder;
+        ctx.stroke();
+
+        ctx.textAlign = 'center';
+        ctx.textBaseline = 'middle';
+        if (io) {
+          const name = c.type === 'IN' ? this.level.inputs[c.idx] : this.level.outputs[c.idx];
+          let v;
+          if (c.type === 'IN') v = this.inputVals[c.idx];
+          else {
+            const i = this.sim.index.get(c.id);
+            v = this.sim.error ? null : this.sim.inputsOf[i][0];
+          }
+          ctx.fillStyle = C.text;
+          ctx.font = '600 12px system-ui, sans-serif';
+          ctx.fillText(name, c.x + (c.type === 'IN' ? 22 : 42), c.y + g.h / 2);
+          const bx = c.type === 'IN' ? c.x + 46 : c.x + 18;
+          ctx.beginPath();
+          ctx.arc(bx, c.y + g.h / 2, 9, 0, Math.PI * 2);
+          ctx.fillStyle = v ? C.on : C.off;
+          ctx.fill();
+          ctx.fillStyle = '#fff';
+          ctx.font = '700 11px ui-monospace, monospace';
+          ctx.fillText(v == null ? '?' : String(v), bx, c.y + g.h / 2 + 0.5);
+        } else {
+          ctx.fillStyle = C.text;
+          ctx.font = '700 12px system-ui, sans-serif';
+          ctx.fillText(def.label, c.x + g.w / 2, c.y + g.h / 2);
+          ctx.font = '10px system-ui, sans-serif';
+          ctx.fillStyle = C.muted;
+          if (def.inputs.length > 1 || def.outputs.length > 1 || def.stateful) {
+            ctx.textAlign = 'left';
+            def.inputs.forEach((n, i) => ctx.fillText(n, g.ins[i].x + 8, g.ins[i].y));
+            ctx.textAlign = 'right';
+            def.outputs.forEach((n, i) => ctx.fillText(n, g.outs[i].x - 8, g.outs[i].y));
+          }
         }
       }
 

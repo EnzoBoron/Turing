@@ -313,6 +313,7 @@
       onChange: (c) => { save.circuits[lvl.id] = c; persist(); },
       onSim: updateCircuitStatus,
       onMessage: showToast,
+      symbols: !!save.symbols,
     });
   }
 
@@ -377,6 +378,15 @@
   };
   $('c-tick').onclick = () => editor.tick();
   $('c-reset-state').onclick = () => editor.resetState();
+  // Mode « symboles » : AND, OR, NOT… dessinés comme dans les manuels. Le choix vaut pour tous les niveaux.
+  function applySymbols() {
+    $('c-symbols').classList.toggle('on', !!save.symbols);
+    $('c-symbols').setAttribute('aria-pressed', String(!!save.symbols));
+    if (editor) editor.setSymbols(!!save.symbols);
+  }
+  $('c-symbols').onclick = () => { save.symbols = !save.symbols; persist(); applySymbols(); };
+  applySymbols();
+
   // Le texte reste affiché : si le navigateur refuse la copie, on peut toujours le sélectionner.
   $('c-copy').onclick = () => {
     $('copy-text').value = describeCircuit(current, editor.circuit);
@@ -750,7 +760,7 @@
     const obj = (v) => (v && typeof v === 'object' && !Array.isArray(v) ? v : {});
     return {
       done: obj(data.done), circuits: obj(data.circuits), programs: obj(data.programs), notes: obj(data.notes), drawings: obj(data.drawings),
-      free: !!data.free, notesClosed: !!data.notesClosed, descHidden: !!data.descHidden,
+      free: !!data.free, notesClosed: !!data.notesClosed, descHidden: !!data.descHidden, symbols: !!data.symbols,
     };
   }
 
@@ -768,6 +778,7 @@
       flush();
       renderMenu();
       applyDescHidden();
+      applySymbols();
       loadDrawing();
       saveMessage('Sauvegarde importée : ' + n + ' niveaux réussis.', true);
     } catch (err) {
@@ -781,6 +792,7 @@
     persist();
     renderMenu();
     applyDescHidden();
+    applySymbols();
     loadDrawing();
   };
   document.addEventListener('keydown', (e) => {

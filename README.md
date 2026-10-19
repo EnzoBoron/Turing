@@ -40,6 +40,7 @@ ou pour garder une copie de sécurité.
 - Clique sur une entrée (A, B…) pour basculer sa valeur : les fils allumés sont orange.
 - <kbd>Suppr</kbd> ou clic droit supprime la sélection. Molette : zoom ; glisser le fond : déplacer la vue.
 - **Tick** fait avancer l'horloge dans les niveaux avec mémoire.
+- **⊳ Symboles** dessine les portes (AND, OR, NOT, XOR…) avec leur symbole officiel, comme dans les manuels.
 - **📋 Copier le schéma** affiche le circuit en texte, une ligne par porte (`MUX1 = MUX(A: AND1, B: OR1, S: Op0)`),
   pratique pour le partager ou demander de l'aide.
 - **✎ Crayon** (en haut) : dessine par-dessus tout l'écran, avec plusieurs couleurs, une gomme et

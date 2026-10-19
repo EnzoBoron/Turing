@@ -206,6 +206,20 @@ async function main() {
   await open('and');
   check('le brouillon est retrouvé', (await page.inputValue('#c-notes')) === 'A B | Q\n0 0 | 0');
 
+  console.log('Symboles des portes');
+  const pixels = () => page.evaluate(() => window.game.editor.canvas.toDataURL());
+  const blocks = await pixels();
+  await page.click('#c-symbols');
+  check('le bouton active le mode symboles', await page.evaluate(() => window.game.editor.symbols) && (await page.getAttribute('#c-symbols', 'aria-pressed')) === 'true');
+  check('les portes sont redessinées', (await pixels()) !== blocks);
+  const wiresBefore = await wires();
+  await open('sum');
+  await open('and');
+  check('le choix est gardé d\'un niveau à l\'autre', await page.evaluate(() => window.game.editor.symbols));
+  check('le circuit ne change pas', JSON.stringify(await wires()) === JSON.stringify(wiresBefore));
+  await page.click('#c-symbols');
+  check('un second clic revient aux blocs', !(await page.evaluate(() => window.game.editor.symbols)));
+
   console.log('Copier le schéma');
   await page.click('#c-copy');
   const shown = await page.inputValue('#copy-text');
