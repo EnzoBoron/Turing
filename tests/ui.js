@@ -253,6 +253,32 @@ async function main() {
   await page.click('#c-symbols');
   check('un second clic revient aux blocs', !(await page.evaluate(() => window.game.editor.symbols)));
 
+  console.log('Panneau de l\'énoncé');
+  const sideW = () => page.evaluate(() => document.getElementById('c-side').getBoundingClientRect().width);
+  const w0 = await sideW();
+  const grip = await page.locator('#screen-circuit .side-resizer').boundingBox();
+  await page.mouse.move(grip.x + grip.width / 2, grip.y + 200);
+  await page.mouse.down();
+  await page.mouse.move(grip.x + grip.width / 2 + 150, grip.y + 200, { steps: 5 });
+  await page.mouse.up();
+  check('glisser la poignée élargit le panneau', Math.abs((await sideW()) - (w0 + 150)) < 3, `${w0} → ${await sideW()}`);
+  check('le circuit se redimensionne avec', await page.evaluate(() => {
+    const c = document.getElementById('c-canvas').getBoundingClientRect();
+    const s = document.getElementById('c-side').getBoundingClientRect();
+    return c.left >= s.right && c.right <= window.innerWidth + 1;
+  }));
+  await page.click('#screen-circuit .side-fold');
+  check('le bouton replie le panneau', !(await page.isVisible('#c-side')));
+  await open('sum');
+  check('le panneau reste replié dans les autres niveaux', !(await page.isVisible('#a-side')));
+  await page.click('#screen-asm .side-fold');
+  check('et se déplie d\'un clic', await page.isVisible('#a-side'));
+  await open('and');
+  check('la largeur choisie est gardée', Math.abs((await sideW()) - (w0 + 150)) < 3);
+  await page.evaluate(() => document.querySelector('#screen-circuit .side-resizer').dispatchEvent(new MouseEvent('dblclick', { bubbles: true })));
+  check('double-clic sur la poignée replie aussi', !(await page.isVisible('#c-side')));
+  await page.click('#screen-circuit .side-fold');
+
   console.log('Copier le schéma');
   await page.click('#c-copy');
   const shown = await page.inputValue('#copy-text');

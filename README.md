@@ -39,6 +39,8 @@ ou pour garder une copie de sécurité.
 - Clique sur une entrée (A, B…) pour basculer sa valeur : les fils allumés sont orange.
 - <kbd>Suppr</kbd> ou clic droit supprime la sélection. Molette : zoom ; glisser le fond : déplacer la vue.
 - **Tick** fait avancer l'horloge dans les niveaux avec mémoire.
+- La **poignée** entre le panneau de l'énoncé et le circuit se glisse pour élargir ou rétrécir le panneau ;
+  son bouton (ou un double-clic) le replie pour laisser toute la place au circuit.
 - **🧪 Bac à sable** (sur le menu) : un circuit libre avec tous les composants, sans objectif. On y place
   ses propres **Entrées** et **Sorties** (double-clic pour les renommer) ; **Table de vérité** calcule le
   résultat pour toutes les combinaisons des entrées câblées, et la **batterie de tests** du panneau de

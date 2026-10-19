@@ -163,7 +163,21 @@ button.link { background: none; border: none; padding: 0; text-decoration: under
 .save-msg.bad { color: var(--bad); }
 
 /* ------------------------------------------------------------ Niveaux */
-#screen-circuit, #screen-asm { display: grid; grid-template-columns: 320px 1fr; }
+#screen-circuit, #screen-asm { display: grid; grid-template-columns: var(--side-w, 320px) 12px minmax(0, 1fr); }
+/* Poignée entre le panneau et l'espace de travail : on la glisse pour redimensionner. */
+.side-resizer {
+  position: relative; cursor: col-resize; touch-action: none;
+  background: var(--panel); border-right: 1px solid var(--border);
+}
+.side-resizer:hover, .side-resizer.dragging { background: var(--panel-2); }
+.side-fold {
+  position: absolute; top: 10px; left: 50%; transform: translateX(-50%); z-index: 2;
+  width: 22px; height: 32px; padding: 0; font-size: 11px; line-height: 1; border-radius: 6px;
+}
+body.side-folded .panel.side { display: none; }
+body.side-folded #screen-circuit, body.side-folded #screen-asm { grid-template-columns: 28px minmax(0, 1fr); }
+body.side-folded .side-resizer { cursor: pointer; }
+body.side-resizing { cursor: col-resize; user-select: none; }
 .panel { background: var(--panel); border-right: 1px solid var(--border); }
 .side { overflow: auto; padding: 16px; }
 .level-head h2 { margin: 2px 0 8px; font-size: 22px; }
@@ -347,6 +361,8 @@ body.drawing.erasing .draw-layer { cursor: cell; }
   body { height: auto; min-height: 100%; }
   #screen-circuit, #screen-asm { display: flex; flex-direction: column; }
   .panel.side { border-right: none; border-bottom: 1px solid var(--border); max-height: none; }
+  .side-resizer { cursor: default; height: 30px; flex: none; border-right: none; border-bottom: 1px solid var(--border); }
+  .side-fold { top: 3px; width: 40px; height: 24px; }
   .canvas-wrap { flex: none; height: 62vh; }
   .asm-body { grid-template-columns: 1fr; }
   .code-wrap { height: 50vh; }

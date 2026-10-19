@@ -302,6 +302,52 @@
   }
   applyDescHidden();
 
+  // Panneau de l'énoncé : largeur réglable en glissant sa poignée, et repliable.
+  // Les deux réglages valent pour tous les niveaux.
+  const SIDE_MIN = 220;
+  const narrow = window.matchMedia('(max-width: 860px)');
+  const sideMax = () => Math.max(SIDE_MIN, Math.round(window.innerWidth * 0.7));
+  function applySide() {
+    const w = Math.min(sideMax(), Math.max(SIDE_MIN, Number(save.sideWidth) || 320));
+    document.documentElement.style.setProperty('--side-w', w + 'px');
+    document.body.classList.toggle('side-folded', !!save.sideFolded);
+    for (const b of document.querySelectorAll('.side-fold')) {
+      b.textContent = save.sideFolded ? (narrow.matches ? '▼' : '▶') : (narrow.matches ? '▲' : '◀');
+      b.setAttribute('aria-label', save.sideFolded ? 'Déplier le panneau' : 'Replier le panneau');
+      b.title = b.getAttribute('aria-label');
+    }
+  }
+  const toggleSide = () => { save.sideFolded = !save.sideFolded; persist(); applySide(); };
+  for (const r of document.querySelectorAll('.side-resizer')) {
+    let drag = null;
+    r.addEventListener('pointerdown', (e) => {
+      if (e.button !== 0 || e.target.closest('.side-fold') || save.sideFolded || narrow.matches) return;
+      r.setPointerCapture(e.pointerId);
+      drag = { x: e.clientX, w: r.previousElementSibling.getBoundingClientRect().width };
+      r.classList.add('dragging');
+      document.body.classList.add('side-resizing');
+    });
+    r.addEventListener('pointermove', (e) => {
+      if (!drag) return;
+      save.sideWidth = Math.round(Math.min(sideMax(), Math.max(SIDE_MIN, drag.w + e.clientX - drag.x)));
+      applySide();
+    });
+    const end = () => {
+      if (!drag) return;
+      drag = null;
+      r.classList.remove('dragging');
+      document.body.classList.remove('side-resizing');
+      persist();
+    };
+    r.addEventListener('pointerup', end);
+    r.addEventListener('pointercancel', end);
+    r.addEventListener('dblclick', (e) => { if (!e.target.closest('.side-fold')) toggleSide(); });
+    r.querySelector('.side-fold').addEventListener('click', toggleSide);
+  }
+  window.addEventListener('resize', applySide);
+  narrow.addEventListener('change', applySide);
+  applySide();
+
   // Brouillon : notes libres du joueur, une par niveau, enregistrées avec la partie.
   function openNotes(prefix, lvl) {
     const box = $(prefix + '-notes-box');
@@ -1112,6 +1158,7 @@
     return {
       done: obj(data.done), circuits: obj(data.circuits), programs: obj(data.programs), notes: obj(data.notes), drawings: obj(data.drawings),
       free: !!data.free, notesClosed: !!data.notesClosed, descHidden: !!data.descHidden, symbols: !!data.symbols,
+      sideWidth: Number(data.sideWidth) || undefined, sideFolded: !!data.sideFolded,
       builds: obj(data.builds), currentBuild: typeof data.currentBuild === 'string' ? data.currentBuild : null,
     };
   }
@@ -1131,6 +1178,7 @@
       renderMenu();
       applyDescHidden();
       applySymbols();
+      applySide();
       loadDrawing();
       saveMessage('Sauvegarde importée : ' + n + ' niveaux réussis.', true);
     } catch (err) {
@@ -1145,6 +1193,7 @@
     renderMenu();
     applyDescHidden();
     applySymbols();
+    applySide();
     loadDrawing();
   };
   document.addEventListener('keydown', (e) => {
@@ -1163,5 +1212,6 @@
     else if (current || document.body.dataset.screen !== 'menu') goMenu();
   }
   window.addEventListener('hashchange', () => { hideModal(); route(); });
+  updateProgress(); // aussi quand la page s'ouvre directement sur un niveau
   route();
 })();
