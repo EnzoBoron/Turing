@@ -548,7 +548,9 @@
       ctx.setTransform(this.dpr * scale, 0, 0, this.dpr * scale, this.dpr * vx, this.dpr * vy);
 
       // Dessins au crayon posés sur le circuit : sous les fils et les composants.
-      this.underlay(ctx, scale);
+      // Une erreur du crayon ne doit jamais empêcher le circuit de s'afficher.
+      try { this.underlay(ctx, scale); } catch (e) { console.error('Crayon :', e); }
+      ctx.setTransform(this.dpr * scale, 0, 0, this.dpr * scale, this.dpr * vx, this.dpr * vy);
 
       // Fils.
       this.circuit.wires.forEach((w, k) => {
@@ -570,7 +572,7 @@
       // Composants.
       const cycle = new Set(this.sim ? this.sim.cycle : []);
       for (const c of this.circuit.components) this.drawComp(c, cycle.has(c.id));
-      this.onDraw(); // le crayon redessine ses traits accrochés au circuit
+      try { this.onDraw(); } catch (e) { console.error('Crayon :', e); } // traits accrochés au circuit
     }
 
     pinPos(pin) {

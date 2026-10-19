@@ -544,6 +544,14 @@ console.log('Constructions réutilisées');
   check('une construction supprimée ne casse rien', !new Simulator(top).error && getDef('U:par').missing);
 }
 
+console.log('Version des fichiers');
+{
+  const html = require('fs').readFileSync(require('path').join(__dirname, '..', 'index.html'), 'utf8');
+  const refs = [...html.matchAll(/(?:src|href)="((?:js|css)\/[^"]+|favicon\.svg[^"]*)"/g)].map((m) => m[1]);
+  const versions = new Set(refs.map((r) => (r.match(/\?v=([^"&]+)/) || [])[1]));
+  check('chaque fichier du jeu porte la même version (?v=…)', refs.length >= 8 && versions.size === 1 && !versions.has(undefined), refs.join(' '));
+}
+
 console.log('Composants débloqués');
 for (const lvl of LEVELS) if (lvl.unlock) check(lvl.id + ' → ' + lvl.unlock, !!getDef(lvl.unlock));
 

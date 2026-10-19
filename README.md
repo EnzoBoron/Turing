@@ -95,6 +95,13 @@ tests/run.js        vérifie que chaque niveau est résoluble
 tests/ui.js         tests de l'interface (Playwright)
 ```
 
+## Mettre à jour le jeu
+
+Les fichiers sont chargés avec un numéro de version (`?v=…` dans `index.html`). À chaque
+modification de `js/` ou `css/`, change ce numéro partout dans `index.html` : le navigateur
+recharge alors tous les fichiers ensemble, sans mélanger d'anciens fichiers gardés en cache avec
+les nouveaux. `tests/run.js` vérifie que la version est la même partout.
+
 ## Tests
 
 ```sh
